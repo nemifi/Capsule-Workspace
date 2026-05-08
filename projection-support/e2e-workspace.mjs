@@ -21,7 +21,6 @@ try {
       packageName: "workspace-e2e-body"
     },
     bodyPath: "projection-body",
-    bodyTemplate: "minimal",
     boundary: {
       limits: [
         "body-owned implementation stays outside projection-root/core",
