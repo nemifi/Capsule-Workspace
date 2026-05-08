@@ -1,10 +1,18 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
-import { readFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const workspaceRoot = path.dirname(fileURLToPath(import.meta.url));
+const args = new Set(process.argv.slice(2));
+for (const arg of args) {
+  if (arg !== "--remote") {
+    throw new Error(`unknown option: ${arg}`);
+  }
+}
+const checkRemote = args.has("--remote");
 const workspace = await readJson("capsule-workspace.json");
 const lock = await readJson("capsule-workspace.lock.json");
 const lockByPath = new Map(lock.projections.map((projection) => [projection.path, projection]));
@@ -27,6 +35,21 @@ for (const projection of workspace.projections) {
     hasAttention = true;
   }
   console.log(`- ${projection.role}: ${clean}, ${locked}, ${head.slice(0, 7)}`);
+
+  if (checkRemote) {
+    const remote = lockByPath.get(projection.path)?.remote;
+    if (!remote || !expected) {
+      hasAttention = true;
+      console.log(`- remote ${projection.role}: attention`);
+      continue;
+    }
+    if (await remoteCommitFetchable(remote, expected)) {
+      console.log(`- remote ${projection.role}: fetchable`);
+    } else {
+      hasAttention = true;
+      console.log(`- remote ${projection.role}: attention`);
+    }
+  }
 }
 
 for (const projection of workspace.projections) {
@@ -112,4 +135,17 @@ function run(command, args, cwd) {
     encoding: "utf8",
     stdio: "pipe",
   });
+}
+
+async function remoteCommitFetchable(remote, commit) {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "capsule-remote-doctor-"));
+  try {
+    const init = run("git", ["init", "-q"], tempRoot);
+    if (init.status !== 0) {
+      throw new Error(init.stderr.trim() || "git init failed for remote doctor");
+    }
+    return run("git", ["fetch", "--dry-run", remote, commit], tempRoot).status === 0;
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
 }

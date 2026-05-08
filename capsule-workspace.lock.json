@@ -2,31 +2,31 @@
   "kind": "capsule/workspace-lock",
   "projections": [
     {
-      "commit": "a815cbeff909e06c3a69d996cb71046843e7dab2",
+      "commit": "eb547536766ff96b723ac0c7f2d0e53a4684f408",
       "path": "Capsule Base",
       "remote": "https://github.com/nemifi/capsule-base.git",
       "role": "capsule-base"
     },
     {
-      "commit": "7a89851d5b87ae4a8759d1448b139a98eef17f7c",
+      "commit": "8daf0cce86c86687d078e7ecadaa06412dc4f0a0",
       "path": "Capsule Generator",
       "remote": "https://github.com/nemifi/Capsule-Generator.git",
       "role": "capsule-generator"
     },
     {
-      "commit": "6a5b6903d6e30b8b9bbf00281d0d82c5f53f76fe",
+      "commit": "d1968b57fbd5a27e0675dcc2fcdb02341380b14f",
       "path": "Capsule Directory",
       "remote": "https://github.com/nemifi/Capsule-Directory.git",
       "role": "capsule-directory"
     },
     {
-      "commit": "f1ae0b373449813f0b60901d07e5004cbfcc9174",
+      "commit": "76197ab0502b8507ded2c0f0140ff9a57e12e52a",
       "path": "Capsule Updater",
       "remote": "https://github.com/nemifi/Capsule-Updater.git",
       "role": "capsule-updater"
     },
     {
-      "commit": "6051a267071da4c85ea192cd8ed409f12664df82",
+      "commit": "28fd4f038faf06111b5a7ac6c2320dd95a1786b1",
       "path": "Capsule OS",
       "remote": "https://github.com/nemifi/Capsule-OS.git",
       "role": "capsule-os"

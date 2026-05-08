@@ -46,6 +46,13 @@ node doctor-workspace.mjs
 
 It checks child repo cleanliness, lock drift, Base adoption currency, Directory
 scan health, the main OS routes, and the cross-projection capability graph.
+When you need to prove the lock can be recreated from another terminal or
+machine, include the remote fetchability check after the child commits have
+been published:
+
+```sh
+node doctor-workspace.mjs --remote
+```
 
 Base adoption expectations are declared per projection in
 `capsule-workspace.json` as `adoptionPolicy: none | optional | required`.
