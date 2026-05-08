@@ -13,47 +13,35 @@ projection-root/kit/
   ARCHITECTURE.md
   CONCEPTS.md
   interop/
-    ADOPTION.md
     ARCHITECTURE.md
     interface/
-      ADOPTION.md
-      ARCHITECTURE.md
       verify.mjs
     intent/
-      ADOPTION.md
-      ARCHITECTURE.md
       verify.mjs
     compatibility/
-      ADOPTION.md
-      ARCHITECTURE.md
       verify.mjs
     adapter/
-      ADOPTION.md
-      ARCHITECTURE.md
       verify.mjs
     session/
-      ADOPTION.md
-      ARCHITECTURE.md
       verify.mjs
     evidence/
-      ADOPTION.md
-      ARCHITECTURE.md
       verify.mjs
     relation/
-      ADOPTION.md
-      ARCHITECTURE.md
       verify.mjs
     index/
-      ADOPTION.md
-      ARCHITECTURE.md
       verify.mjs
     proposal/
-      ADOPTION.md
-      ARCHITECTURE.md
       verify.mjs
     guard/
-      ADOPTION.md
-      ARCHITECTURE.md
+      verify.mjs
+  materialization/
+    catalog.json
+    verify.mjs
+  toolchain/
+    manifest.json
+    verify.mjs
+    typescript/
+      manifest.json
       verify.mjs
 ```
 
@@ -63,9 +51,9 @@ projection-root/kit/
 participation, exposure, exchange, continuity, discovery, or migration.
 
 Common forms include context, surface, surface-manifest, event, lineage,
-migration, namespace, payload, schema, interpretation, capability, and interop
-fabric records. A projection may adopt none of them and still remain valid when
-its core is valid.
+migration, namespace, payload, schema, interpretation, capability, interop
+fabric records, materialization records, and toolchain declaration records. A
+projection may adopt none of them and still remain valid when its core is valid.
 
 `interop/` carries reusable grammar for intent-routed, index-derived,
 proposal-negotiated, target-guarded, compatibility-planned,
@@ -159,6 +147,26 @@ compatibility planning, adapter execution, or session execution without making
 those records permission grants, consent capture, policy execution, runtime,
 enforcement, trust, or projection validity.
 
+## Materialization
+
+`materialization/` carries the reusable declarations that let Capsule Generator
+choose the default projection shape without asking a human to pick a framework
+on every new capsule. It names standard profiles, feature contracts, the
+default toolchain, and the receipt requirement.
+
+The materialization catalog is not Capsule Generator itself. It is also not a
+template store, package store, framework store, migration engine, runtime, or
+projection validity. Generator-owned implementation and dependency resolution
+belong outside root kit, and generated package files, source files, support
+tooling, locks, and receipts belong only in the body or `projection-support/`
+of the projection that needs them.
+
+`toolchain/` carries reusable toolchain manifests and declaration checks. A
+toolchain declaration may name the current default reference language and prove
+useful machine paths, but it must not become root truth, a package set, a
+source tree, a required consumer support directory, body implementation,
+production runtime, or projection validity.
+
 ## Concept Records
 
 `CONCEPTS.md` carries common optional concept records. Each record declares
@@ -177,10 +185,20 @@ Bodies may adopt kit grammar and give adopted records contextual meaning.
 Policy may protect the presence and shape of this capsule's kit files without
 turning kit adoption into projection validity.
 
+Kit leaf families are declaration-first. A leaf family carries its shape in a
+manifest, concept record, canonical record, or verifier before it earns a new
+document. Do not add per-leaf `ARCHITECTURE.md` or `ADOPTION.md` files as the
+default explanation surface.
+
 ## Placement Rule
 
 Put a concept in kit when it is reusable across projections but not required
 for every projection to exist.
+
+Put details in an existing kit map, a manifest, or a verifier when the concept
+does not introduce a new ownership boundary. Add a new architecture document
+only when a reusable family is explicitly elevated to a shared map rather than
+one more leaf record family.
 
 ## Verification Contract
 
@@ -194,7 +212,10 @@ kit:body-independent | Kit grammar must not depend on, execute, interpret, or re
 kit:concept-records | Kit concept records declare layer, strength, dependencies, adoption surface, limits, verifier role, and note. | projection-kit
 kit:concepts-not-registry | The kit concept table remains a local reading map, not a root registry or complete concept list. | projection-kit,root-docs
 kit:interop-fabric-optional | Interop fabric grammar remains optional coordination grammar outside origin material, not identity, permission, ownership, registry, runtime, or projection validity. | projection-kit,projection-core
+kit:leaf-docs-forbidden | Kit leaf families use manifests, records, and verifiers first; per-leaf ADOPTION.md and ARCHITECTURE.md files must not grow as the default explanation surface. | projection-kit,root-docs
+kit:materialization-declarative | The materialization catalog names standard profiles, feature contracts, and toolchain declarations for Capsule Generator without becoming the generator, templates, package store, runtime, or projection validity. | projection-kit,body
 kit:optional-reusable | The kit remains optional reusable participation grammar and common form naming, not projection validity. | projection-kit,projection-core
-kit:participation-forms-common | Context, surfaces, events, lineage, migration, payloads, schemas, namespaces, interpretations, and capabilities remain common optional forms. | projection-kit,body
+kit:participation-forms-common | Context, surfaces, events, lineage, migration, payloads, schemas, namespaces, interpretations, capabilities, materialization, and toolchain declarations remain common optional forms. | projection-kit,body
 kit:placement-reusable-not-required | A concept belongs in kit only when reusable across projections but not required for every projection to exist. | projection-kit,projection-core
+kit:toolchain-lightweight | Toolchain declarations remain lightweight root kit declarations; package artifacts, lockfiles, build outputs, template trees, source trees, and runtime dependencies must not be materialized into root kit. | projection-kit,body
 ```

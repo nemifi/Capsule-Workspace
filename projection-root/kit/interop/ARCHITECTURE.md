@@ -154,6 +154,21 @@ Two projections use the same flow as ten thousand projections. The difference
 is only candidate selection, role assignment, adapter graph size, and session
 fanout.
 
+## Adoption
+
+Adoption is incremental. A projection may publish only an interface manifest,
+adopt any later family as needed, or adopt none at all without changing
+projection validity.
+
+Adopted records belong outside `projection-root/core/`. Bodies own their
+runtime execution, safety, authorization, consent, data movement, side effects,
+secret access, policy execution, and interpretation.
+
+Reusable grammar lives in the family verifiers named by
+`projection-root/kit/interop/manifest.json`. Adoption guidance stays in this
+architecture map and in verifier usage output rather than a separate root
+adoption document.
+
 ## Scale Model
 
 Large-scale interop must avoid complete pairwise graphs. Candidate indexes are
@@ -211,6 +226,7 @@ domain interpretation.
 id | obligation | scope
 interop:adapter-mediated | Interop uses explicit proposal-bound and guard-target-bound adapters for vocabulary, payload, protocol, identity, stream, or effect translation instead of forcing one universal schema. | projection-kit
 interop:adapter-verified | Verified adapter contracts require ready compatibility, declared endpoint interface basis records, satisfied or waived guards, ready guard targets, required effect and payload mappings without unknown loss, observed required evidence, verification fixtures, satisfied or waived constraints, and mitigated risks. | projection-kit
+interop:adoption-incremental | Projections may adopt interop families incrementally, or none at all, without changing projection validity. | projection-kit,projection-core
 interop:compatibility-ready | Interop compatibility plans become ready only from selected participants, satisfied or waived guards, ready guard targets, satisfied roles, verified required adapters, observed required evidence, and satisfied or waived constraints. | projection-kit
 interop:derived-index | Interop indexes are reproducible candidate and link views from visible sources, ready evidence or relation source bindings, scoped roles and effects, binding material, complete source freshness, and closed risks, not source records, truth, permission, ownership, global graphs, or required infrastructure. | projection-kit
 interop:evidence-bounded | Interop evidence records finite proposal/session-bound observations with adapter, guard target, receipt, and result bindings without becoming truth or enforcement. | projection-kit

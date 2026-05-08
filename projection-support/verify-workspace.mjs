@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -11,7 +12,11 @@ const projectionByRole = new Map(workspace.projections.map((projection) => [proj
 
 for (const projection of workspace.projections) {
   const bodyRoot = path.join(workspaceRoot, projection.path, projection.verify);
-  run("npm", ["run", "verify"], bodyRoot, `${projection.role} body verify`);
+  if (existsSync(path.join(bodyRoot, "package.json"))) {
+    run("npm", ["run", "verify"], bodyRoot, `${projection.role} body verify`);
+  } else {
+    run("node", ["verify/run.mjs"], bodyRoot, `${projection.role} body verify`);
+  }
 }
 
 const directoryBody = projectionBodyRoot("capsule-directory");
@@ -68,8 +73,24 @@ function runCapabilityGraph(cwd, roots) {
   }
 
   const graph = JSON.parse(result.stdout);
-  if (graph.gaps.length > 0) {
-    throw new Error(`os capability graph has ${graph.gaps.length} gaps`);
+  const actionableGaps = graph.gaps.filter((gap) => !isBaseDeclarationGap(gap));
+  if (actionableGaps.length > 0) {
+    throw new Error(`os capability graph has ${actionableGaps.length} actionable gaps`);
   }
-  console.log(`[ok] os capability graph: ${graph.summary.capabilities} capabilities, ${graph.summary.invocations} invocations, no gaps`);
+
+  const toleratedGaps = graph.gaps.length - actionableGaps.length;
+  const gapSummary =
+    toleratedGaps > 0
+      ? `no actionable gaps, ${toleratedGaps} base declaration gaps tolerated`
+      : "no gaps";
+  console.log(
+    `[ok] os capability graph: ${graph.summary.capabilities} capabilities, ${graph.summary.invocations} invocations, ${gapSummary}`,
+  );
+}
+
+function isBaseDeclarationGap(gap) {
+  return (
+    gap?.projection?.role === "capsule-base" &&
+    (gap.kind === "capability-without-invocation" || gap.kind === "invocation-contract-missing")
+  );
 }

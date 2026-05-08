@@ -80,7 +80,6 @@ const REQUIRED_PROTECTED_KIT_PATHS = [
   "projection-root/kit/ARCHITECTURE.md",
   "projection-root/kit/CONCEPTS.md",
   "projection-root/kit/interop",
-  "projection-root/kit/interop/ADOPTION.md",
   "projection-root/kit/interop/ARCHITECTURE.md",
   "projection-root/kit/interop/manifest.json",
   "projection-root/kit/interop/adapter",
@@ -102,7 +101,16 @@ const REQUIRED_PROTECTED_KIT_PATHS = [
   "projection-root/kit/interop/relation",
   "projection-root/kit/interop/relation/verify.mjs",
   "projection-root/kit/interop/session",
-  "projection-root/kit/interop/session/verify.mjs"
+  "projection-root/kit/interop/session/verify.mjs",
+  "projection-root/kit/materialization",
+  "projection-root/kit/materialization/catalog.json",
+  "projection-root/kit/materialization/verify.mjs",
+  "projection-root/kit/toolchain",
+  "projection-root/kit/toolchain/manifest.json",
+  "projection-root/kit/toolchain/verify.mjs",
+  "projection-root/kit/toolchain/typescript",
+  "projection-root/kit/toolchain/typescript/manifest.json",
+  "projection-root/kit/toolchain/typescript/verify.mjs"
 ];
 const REQUIRED_POLICY_PATHS = [
   "projection-root/policy",
@@ -157,8 +165,8 @@ const ALLOWED_POLICY_DIRECTORY_ENTRIES = [
   ["projection-root", ["core", "framework", "kit", "policy"]],
   ["projection-root/policy", ["ARCHITECTURE.md", "origin-witness", "seed-manifest.json", "verify"]],
   ["projection-root/policy/origin-witness", ["commitment", "ref", "seal"]],
-  ["projection-root/kit", ["ARCHITECTURE.md", "CONCEPTS.md", "interop"]],
-  ["projection-root/kit/interop", ["ADOPTION.md", "ARCHITECTURE.md", "manifest.json", "adapter", "compatibility", "evidence", "guard", "index", "interface", "intent", "proposal", "relation", "session"]],
+  ["projection-root/kit", ["ARCHITECTURE.md", "CONCEPTS.md", "interop", "materialization", "toolchain"]],
+  ["projection-root/kit/interop", ["ARCHITECTURE.md", "manifest.json", "adapter", "compatibility", "evidence", "guard", "index", "interface", "intent", "proposal", "relation", "session"]],
   ["projection-root/kit/interop/adapter", ["verify.mjs"]],
   ["projection-root/kit/interop/compatibility", ["verify.mjs"]],
   ["projection-root/kit/interop/evidence", ["verify.mjs"]],
@@ -168,7 +176,10 @@ const ALLOWED_POLICY_DIRECTORY_ENTRIES = [
   ["projection-root/kit/interop/intent", ["verify.mjs"]],
   ["projection-root/kit/interop/proposal", ["verify.mjs"]],
   ["projection-root/kit/interop/relation", ["verify.mjs"]],
-  ["projection-root/kit/interop/session", ["verify.mjs"]]
+  ["projection-root/kit/interop/session", ["verify.mjs"]],
+  ["projection-root/kit/materialization", ["catalog.json", "verify.mjs"]],
+  ["projection-root/kit/toolchain", ["manifest.json", "typescript", "verify.mjs"]],
+  ["projection-root/kit/toolchain/typescript", ["manifest.json", "verify.mjs"]]
 ];
 const REQUIRED_KIT_CONCEPTS = [
   "projection-kit:capability",
@@ -187,12 +198,14 @@ const REQUIRED_KIT_CONCEPTS = [
   "projection-kit:interop-relation",
   "projection-kit:interop-session",
   "projection-kit:lineage",
+  "projection-kit:materialization",
   "projection-kit:migration",
   "projection-kit:namespace",
   "projection-kit:payload",
   "projection-kit:schema",
   "projection-kit:surface",
-  "projection-kit:surface-manifest"
+  "projection-kit:surface-manifest",
+  "projection-kit:toolchain"
 ];
 export async function checkProjectionPolicy(root) {
   const core = await verifyProjectionCore(root);
@@ -227,6 +240,8 @@ export async function checkProjectionPolicy(root) {
   await checkRootProjection(root);
   await checkRootPolicy(root);
   await checkRootKit(root);
+  await checkKitLeafDocumentationBudget(root);
+  await checkKitImplementationWeight(root);
   const frameworkConceptIds = (await readConceptRecords(root, "projection-root/framework/CONCEPTS.md"))
     .map((record) => record.id);
   await verifyKitConceptRecords(root, frameworkConceptIds);
@@ -234,6 +249,8 @@ export async function checkProjectionPolicy(root) {
   await checkPolicyRecordReferenceProofs(root, {
     frameworkConceptIds
   });
+  await checkKitLeafDocumentationBudgetProofs(root);
+  await checkKitImplementationWeightProofs(root);
   checkDefaultMutableAreaGuardProofs();
   await checkRootAgentRules(root);
   await checkRootReadme(root);
@@ -612,7 +629,8 @@ async function verifySingleBaseAdoptionApplyOperation(root, core, operation) {
   assertEqual(operation.preconditions.bodyPath, bodyPath, `${ROOT_OPERATION_ENV}.preconditions.bodyPath`);
   assertEqual(operation.preconditions.witnessPath, witnessPath, `${ROOT_OPERATION_ENV}.preconditions.witnessPath`);
   assertEqual(operation.preconditions.baseManifestCommitment, witness.base?.manifestCommitment, `${ROOT_OPERATION_ENV}.preconditions.baseManifestCommitment`);
-  const allowedWriteSet = [...witness.scope.adoptedSystemPaths, witnessPath].sort();
+  const removedSystemPaths = baseAdoptionRemovedSystemPaths(operation);
+  const allowedWriteSet = [...witness.scope.adoptedSystemPaths, ...removedSystemPaths, witnessPath].sort();
   const outsideAdoption = operation.writeSet.filter((changedPath) => !isInsideAnyRoot(changedPath, allowedWriteSet));
   if (outsideAdoption.length > 0) {
     throw new Error(`base-adoption-apply writeSet must stay inside adopted system paths and witness: ${outsideAdoption.join(", ")}`);
@@ -633,12 +651,24 @@ async function verifyFleetBaseAdoptionApplyOperation(root, core, operation) {
   assertEqual(operation.preconditions.fleetManifestPath, core.bodyRef.ref, `${ROOT_OPERATION_ENV}.preconditions.fleetManifestPath`);
   assertEqual(operation.preconditions.witnessPath, witnessPath, `${ROOT_OPERATION_ENV}.preconditions.witnessPath`);
   assertEqual(operation.preconditions.baseManifestCommitment, witness.base?.manifestCommitment, `${ROOT_OPERATION_ENV}.preconditions.baseManifestCommitment`);
-  const allowedWriteSet = [...witness.scope.adoptedSystemPaths, witnessPath].sort();
+  const removedSystemPaths = baseAdoptionRemovedSystemPaths(operation);
+  const allowedWriteSet = [...witness.scope.adoptedSystemPaths, ...removedSystemPaths, witnessPath].sort();
   const outsideAdoption = operation.writeSet.filter((changedPath) => !isInsideAnyRoot(changedPath, allowedWriteSet));
   if (outsideAdoption.length > 0) {
     throw new Error(`fleet base-adoption-apply writeSet must stay inside adopted system paths and workspace witness: ${outsideAdoption.join(", ")}`);
   }
   assertNoProjectionOwnedWrites(operation.writeSet, "fleet base-adoption-apply", [witnessPath]);
+}
+
+function baseAdoptionRemovedSystemPaths(operation) {
+  const removedSystemPaths = operation.preconditions.removedSystemPaths ?? [];
+  assertPortablePathList(removedSystemPaths, `${ROOT_OPERATION_ENV}.preconditions.removedSystemPaths`);
+  assertJsonList(
+    removedSystemPaths,
+    uniqueRootEntries(removedSystemPaths).sort(),
+    `${ROOT_OPERATION_ENV}.preconditions.removedSystemPaths`
+  );
+  return removedSystemPaths;
 }
 
 async function verifyBaseSeedAuthoringOperation(root, bodyRootEntries, operation) {
@@ -823,6 +853,78 @@ async function verifyKitConceptRecords(root, frameworkConceptIds) {
   });
 }
 
+const KIT_ALLOWED_DOCUMENTATION_FILES = new Set([
+  "projection-root/kit/ARCHITECTURE.md",
+  "projection-root/kit/interop/ARCHITECTURE.md"
+]);
+const FORBIDDEN_KIT_IMPLEMENTATION_ENTRY_NAMES = new Set([
+  "dist",
+  "node_modules",
+  "package-lock.json",
+  "package.json",
+  "pnpm-lock.yaml",
+  "src",
+  "templates",
+  "tsconfig.json",
+  "tsconfig.ts6.json",
+  "yarn.lock"
+]);
+
+async function checkKitLeafDocumentationBudget(root) {
+  const docs = await collectKitDocumentationFiles(root, "projection-root/kit");
+  const unexpected = docs
+    .filter((relativePath) => !KIT_ALLOWED_DOCUMENTATION_FILES.has(relativePath))
+    .sort();
+
+  if (unexpected.length > 0) {
+    throw new Error(`Kit leaf documentation must not grow: ${unexpected.join(", ")}`);
+  }
+}
+
+async function collectKitDocumentationFiles(root, relativePath) {
+  const entries = await readdir(path.join(root, relativePath), { withFileTypes: true });
+  const docs = [];
+
+  for (const entry of entries) {
+    const child = `${relativePath}/${entry.name}`;
+    if (entry.isDirectory()) {
+      docs.push(...await collectKitDocumentationFiles(root, child));
+    } else if (entry.isFile() && (entry.name === "ADOPTION.md" || entry.name === "ARCHITECTURE.md")) {
+      docs.push(child);
+    }
+  }
+
+  return docs.sort();
+}
+
+async function checkKitImplementationWeight(root) {
+  const forbidden = await collectForbiddenKitImplementationEntries(root, "projection-root/kit");
+  if (forbidden.length > 0) {
+    throw new Error(`Root kit must stay declarative and lightweight: ${forbidden.join(", ")}`);
+  }
+}
+
+async function collectForbiddenKitImplementationEntries(root, relativePath) {
+  const entries = await readdir(path.join(root, relativePath), { withFileTypes: true });
+  const forbidden = [];
+
+  for (const entry of entries) {
+    if (entry.name.startsWith(".")) {
+      continue;
+    }
+    const child = `${relativePath}/${entry.name}`;
+    if (FORBIDDEN_KIT_IMPLEMENTATION_ENTRY_NAMES.has(entry.name)) {
+      forbidden.push(child);
+      continue;
+    }
+    if (entry.isDirectory()) {
+      forbidden.push(...await collectForbiddenKitImplementationEntries(root, child));
+    }
+  }
+
+  return forbidden.sort();
+}
+
 async function checkPolicyRecordReferenceProofs(root, ids) {
   const proofPaths = [
     "projection-root/framework/CONCEPTS.md",
@@ -871,6 +973,58 @@ async function checkPolicyRecordReferenceProofs(root, ids) {
       () => verifyKitConceptRecords(candidateRoot, ids.frameworkConceptIds),
       "duplicate kit concept dependency proof",
       "must not contain duplicates"
+    );
+  });
+}
+
+async function checkKitLeafDocumentationBudgetProofs(root) {
+  await withProofCopy(root, "projection-policy-kit-doc-budget-proof", ["projection-root/kit"], async (candidateRoot) => {
+    const leafDoc = "projection-root/kit/interop/interface/ARCHITECTURE.md";
+    await mkdir(path.dirname(path.join(candidateRoot, leafDoc)), { recursive: true });
+    await writeFile(path.join(candidateRoot, leafDoc), "# Leaf Architecture\n", "utf8");
+
+    await assertRejects(
+      () => checkKitLeafDocumentationBudget(candidateRoot),
+      "kit leaf architecture doc budget proof",
+      "Kit leaf documentation must not grow"
+    );
+  });
+
+  await withProofCopy(root, "projection-policy-kit-doc-budget-proof", ["projection-root/kit"], async (candidateRoot) => {
+    const futureLeafDoc = "projection-root/kit/toolchain/typescript/ADOPTION.md";
+    await mkdir(path.dirname(path.join(candidateRoot, futureLeafDoc)), { recursive: true });
+    await writeFile(path.join(candidateRoot, futureLeafDoc), "# TypeScript Toolchain Adoption\n", "utf8");
+
+    await assertRejects(
+      () => checkKitLeafDocumentationBudget(candidateRoot),
+      "future kit leaf adoption doc budget proof",
+      "Kit leaf documentation must not grow"
+    );
+  });
+}
+
+async function checkKitImplementationWeightProofs(root) {
+  await withProofCopy(root, "projection-policy-kit-weight-proof", ["projection-root/kit"], async (candidateRoot) => {
+    const packageArtifact = "projection-root/kit/toolchain/typescript/package.json";
+    await mkdir(path.dirname(path.join(candidateRoot, packageArtifact)), { recursive: true });
+    await writeFile(path.join(candidateRoot, packageArtifact), "{}\n", "utf8");
+
+    await assertRejects(
+      () => checkKitImplementationWeight(candidateRoot),
+      "kit package artifact weight proof",
+      "Root kit must stay declarative and lightweight"
+    );
+  });
+
+  await withProofCopy(root, "projection-policy-kit-weight-proof", ["projection-root/kit"], async (candidateRoot) => {
+    const templateTree = "projection-root/kit/materialization/templates/feature.ts";
+    await mkdir(path.dirname(path.join(candidateRoot, templateTree)), { recursive: true });
+    await writeFile(path.join(candidateRoot, templateTree), "export {};\n", "utf8");
+
+    await assertRejects(
+      () => checkKitImplementationWeight(candidateRoot),
+      "kit template tree weight proof",
+      "Root kit must stay declarative and lightweight"
     );
   });
 }

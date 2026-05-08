@@ -23,6 +23,7 @@ const REQUIRED_POLICY_CONTRACTS = [
   "policy:body-ref-root-placement",
   "policy:data-witness",
   "policy:default-mutable-area-diff-guard",
+  "policy:kit-lightweight-boundary",
   "policy:kit-protected-root-layer",
   "policy:origin-change-different-claim",
   "policy:projection-local",
@@ -54,6 +55,11 @@ const REQUIRED_POLICY_OBLIGATION_TERMS = {
     "projection-root/kit",
     "protected root layer",
     "optional"
+  ],
+  "policy:kit-lightweight-boundary": [
+    "root kit declarative",
+    "package artifacts",
+    "template trees"
   ],
   "policy:origin-change-different-claim": [
     "Active origin changes",

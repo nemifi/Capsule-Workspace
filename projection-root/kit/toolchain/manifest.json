@@ -1,0 +1,1 @@
+{"contract":"projection-kit:toolchain-manifest-v1","families":[{"manifest":"projection-root/kit/toolchain/typescript/manifest.json","name":"typescript","verifier":"projection-root/kit/toolchain/typescript/verify.mjs"}],"kind":"projection-kit/toolchain-manifest","version":1}

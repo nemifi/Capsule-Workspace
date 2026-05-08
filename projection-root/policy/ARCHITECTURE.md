@@ -24,7 +24,9 @@ The framework verifies generic grammar and relations. Policy checks that the
 generic result still matches this projection's active witness and root contract.
 For this capsule, that root contract includes a protected `projection-root/kit/`
 layer; kit adoption remains optional, but the shared kit vocabulary is not a
-disposable body artifact.
+disposable body artifact. Policy protects that layer as lightweight
+declarations, so package artifacts, source trees, template trees, build outputs,
+and runtime dependencies do not accumulate in root kit.
 
 `projection-support/` is the standard boundary for projection-specific
 operational support. Policy may allow that root entry without treating its
@@ -86,7 +88,7 @@ Supported operation kinds are:
 
 `projection-root/policy/seed-manifest.json` declares which root paths are seed-owned, which root paths are projection-owned, and which family-level seed docs are forbidden. Seed ownership means the file was materialized from the Capsule Base scaffold so the capsule can run independently after creation; it is not a runtime dependency on Capsule Base. Projection-owned paths remain local claim material, current root documentation, active body ref target material, and the `projection-support/` boundary.
 
-The seed manifest is canonical JSON. Policy verification checks its contract, stable shape, seed-owned path list, projection-owned path list, body-ref source, and forbidden interop family doc patterns. This keeps normal shared seed copies visible without allowing repeated family documentation to grow back under `projection-root/kit/interop/*/`.
+The seed manifest is canonical JSON. Policy verification checks its contract, stable shape, seed-owned path list, projection-owned path list, body-ref source, and forbidden interop family doc patterns. Policy also enforces a general kit leaf documentation budget so repeated leaf `ADOPTION.md` and `ARCHITECTURE.md` files do not grow back under reusable kit families, and a kit weight guard so generator templates, package manifests, lockfiles, source trees, build outputs, and runtime dependencies stay out of root kit.
 
 ## Origin Witness
 
@@ -120,7 +122,7 @@ members.
 - operation artifact validation for scoped root mutation,
 - root PROJECTION, AGENTS, README, policy, and kit document policy,
 - document contract records and concept record graph shape,
-- invalid kit dependency, duplicate, cycle, and document-drift proofs,
+- invalid kit dependency, duplicate, cycle, document-drift, and kit-weight proofs,
 - root placement for policy, framework, kit, core, support, ignored current
   body members, and the seed boundary manifest.
 
@@ -137,6 +139,7 @@ policy:base-authoring-seed-window | Capsule Base policy verification permits see
 policy:body-ref-root-placement | Policy rejects nested single body refs, reserved root entries, and invalid fleet body manifests so current body declarations cannot hide unrelated root shape. | projection-policy,projection-core,body
 policy:data-witness | The policy layout carries active origin witness data and root policy verification. | projection-policy
 policy:default-mutable-area-diff-guard | Normal policy verification rejects git diffs outside the current body or projection-support unless an operation artifact, explicit root surgery, or body replacement covers them. | projection-policy,repository,root-docs,body,projection-support
+policy:kit-lightweight-boundary | Policy keeps root kit declarative by rejecting package artifacts, lockfiles, build outputs, template trees, source trees, and runtime dependencies in projection-root/kit. | projection-policy,projection-kit,body
 policy:kit-protected-root-layer | This projection policy keeps projection-root/kit as a protected root layer while kit adoption remains optional and not projection validity. | projection-policy,projection-kit,body
 policy:origin-change-different-claim | Active origin changes remain different projection claims unless explicitly handled as root surgery. | projection-policy,projection-core
 policy:projection-local | Projection policy stays local to this projection and outside core, framework, kit, and body implementation. | projection-policy,projection-core,projection-framework,projection-kit,body

@@ -16,10 +16,13 @@ import { runSelfTest as runInteropIntentSelfTest } from "../../kit/interop/inten
 import { runSelfTest as runInteropProposalSelfTest } from "../../kit/interop/proposal/verify.mjs";
 import { runSelfTest as runInteropRelationSelfTest } from "../../kit/interop/relation/verify.mjs";
 import { runSelfTest as runInteropSessionSelfTest } from "../../kit/interop/session/verify.mjs";
+import { runSelfTest as runMaterializationSelfTest } from "../../kit/materialization/verify.mjs";
+import { runSelfTest as runToolchainSelfTest } from "../../kit/toolchain/verify.mjs";
 
 const REQUIRED_KIT_SECTIONS = [
   "Current Layout",
   "Kit Role",
+  "Materialization",
   "Concept Records",
   "Boundary",
   "Placement Rule",
@@ -32,9 +35,12 @@ const REQUIRED_KIT_CONTRACTS = [
   "kit:concept-records",
   "kit:concepts-not-registry",
   "kit:interop-fabric-optional",
+  "kit:leaf-docs-forbidden",
+  "kit:materialization-declarative",
   "kit:optional-reusable",
   "kit:participation-forms-common",
-  "kit:placement-reusable-not-required"
+  "kit:placement-reusable-not-required",
+  "kit:toolchain-lightweight"
 ];
 const REQUIRED_KIT_OBLIGATION_TERMS = {
   "kit:adoption-not-required": [
@@ -49,6 +55,21 @@ const REQUIRED_KIT_OBLIGATION_TERMS = {
     "Interop fabric grammar",
     "outside origin material",
     "not identity"
+  ],
+  "kit:leaf-docs-forbidden": [
+    "Kit leaf families",
+    "manifests, records, and verifiers first",
+    "per-leaf ADOPTION.md and ARCHITECTURE.md"
+  ],
+  "kit:materialization-declarative": [
+    "materialization catalog",
+    "Capsule Generator",
+    "without becoming"
+  ],
+  "kit:toolchain-lightweight": [
+    "Toolchain declarations",
+    "package artifacts",
+    "source trees"
   ]
 };
 
@@ -58,6 +79,7 @@ const REQUIRED_INTEROP_SECTIONS = [
   "Fabric Model",
   "Record Families",
   "Coordination Flow",
+  "Adoption",
   "Scale Model",
   "Operations",
   "Boundary",
@@ -66,6 +88,7 @@ const REQUIRED_INTEROP_SECTIONS = [
 
 const REQUIRED_INTEROP_CONTRACTS = [
   "interop:adapter-mediated",
+  "interop:adoption-incremental",
   "interop:derived-index",
   "interop:evidence-bounded",
   "interop:guard-visible",
@@ -74,23 +97,6 @@ const REQUIRED_INTEROP_CONTRACTS = [
   "interop:proposal-bounded",
   "interop:relation-last",
   "interop:session-first"
-];
-
-const REQUIRED_INTEROP_ADOPTION_SECTIONS = [
-  "Minimal Adoption",
-  "Record Families",
-  "Planning",
-  "Boundaries",
-  "Verification",
-  "Verification Contract"
-];
-
-const REQUIRED_INTEROP_ADOPTION_CONTRACTS = [
-  "interop-adoption:adoption-optional",
-  "interop-adoption:body-owned-runtime",
-  "interop-adoption:derived-index-not-source",
-  "interop-adoption:origin-untouched",
-  "interop-adoption:planning-read-first"
 ];
 
 const REQUIRED_INTEROP_ADAPTER_SECTIONS = [
@@ -520,6 +526,8 @@ export async function checkRootKit(root) {
   });
 
   await checkInteropKit(root, core.bodyRef);
+  await runMaterializationSelfTest(root);
+  await runToolchainSelfTest(root);
 }
 
 async function checkInteropKit(root, bodyRef) {
@@ -532,16 +540,6 @@ async function checkInteropKit(root, bodyRef) {
     expectedIdPrefix: "interop:",
     label: "projection-root/kit/interop/ARCHITECTURE.md",
     requiredIds: REQUIRED_INTEROP_CONTRACTS
-  });
-
-  const adoption = await readRootDocument(root, "projection-root/kit/interop/ADOPTION.md");
-  assertTitle(adoption, "# Projection Interop Adoption", "projection-root/kit/interop/ADOPTION.md");
-  assertRequiredSections(adoption, REQUIRED_INTEROP_ADOPTION_SECTIONS, "projection-root/kit/interop/ADOPTION.md");
-  assertNoCurrentBodyPath(adoption, bodyRef, "projection-root/kit/interop/ADOPTION.md");
-  assertVerificationContract(adoption, {
-    expectedIdPrefix: "interop-adoption:",
-    label: "projection-root/kit/interop/ADOPTION.md",
-    requiredIds: REQUIRED_INTEROP_ADOPTION_CONTRACTS
   });
 
   await checkInteropManifest(root, bodyRef);
@@ -573,12 +571,11 @@ async function checkInteropManifest(root, bodyRef) {
     throw new Error(label + " must be canonical JSON");
   }
   assertRecord(manifest, label);
-  assertKeys(manifest, ["architecture", "contract", "families", "kind", "rootAdoption", "version"], label);
+  assertKeys(manifest, ["architecture", "contract", "families", "kind", "version"], label);
   assertEqual(manifest.kind, "projection-kit/interop-manifest", label + ".kind");
-  assertEqual(manifest.contract, "projection-kit:interop-manifest-v1", label + ".contract");
-  assertEqual(manifest.version, 1, label + ".version");
+  assertEqual(manifest.contract, "projection-kit:interop-manifest-v2", label + ".contract");
+  assertEqual(manifest.version, 2, label + ".version");
   assertEqual(manifest.architecture, "projection-root/kit/interop/ARCHITECTURE.md", label + ".architecture");
-  assertEqual(manifest.rootAdoption, "projection-root/kit/interop/ADOPTION.md", label + ".rootAdoption");
   assertArray(manifest.families, label + ".families");
   const names = manifest.families.map((family) => family.name);
   assertJsonEqual(names, INTEROP_FAMILY_ORDER, label + ".families names");

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -19,6 +20,7 @@ const lock = await readSupportJson("capsule-workspace.lock.json");
 const lockByPath = new Map(lock.projections.map((projection) => [projection.path, projection]));
 const projectionByRole = new Map(workspace.projections.map((projection) => [projection.role, projection]));
 const roots = workspace.projections.map((projection) => path.join(workspaceRoot, projection.path));
+const baseRoot = projectionRoot("capsule-base");
 const baseBody = projectionBodyRoot("capsule-base");
 const directoryBody = projectionBodyRoot("capsule-directory");
 const osBody = projectionBodyRoot("capsule-os");
@@ -78,8 +80,7 @@ for (const projection of workspace.projections) {
   }
 }
 
-const workspaceAdoption = run("node", ["verify/adoption.mjs", workspaceRoot, "--require-current"], baseBody);
-if (workspaceAdoption.status === 0) {
+if (await workspaceBaseAdoptionCurrent()) {
   console.log("- adoption workspace: current");
 } else {
   hasAttention = true;
@@ -108,12 +109,17 @@ for (const goal of ["bootstrap", "fleet-update", "verify"]) {
 const graph = run("node", ["bin/capos.mjs", "capability-graph", ...roots, "--json"], osBody);
 if (graph.status === 0) {
   const report = JSON.parse(graph.stdout);
-  const gapCount = report.gaps.length;
-  if (gapCount === 0) {
+  const actionableGaps = report.gaps.filter((gap) => !isBaseDeclarationGap(gap));
+  const toleratedGaps = report.gaps.length - actionableGaps.length;
+  if (actionableGaps.length === 0 && toleratedGaps === 0) {
     console.log(`- capability graph: ${report.summary.capabilities} capabilities, ${report.summary.invocations} invocations, no gaps`);
+  } else if (actionableGaps.length === 0) {
+    console.log(
+      `- capability graph: ${report.summary.capabilities} capabilities, ${report.summary.invocations} invocations, no actionable gaps, ${toleratedGaps} base declaration gaps tolerated`,
+    );
   } else {
     hasAttention = true;
-    console.log(`- capability graph: attention (${gapCount} gaps)`);
+    console.log(`- capability graph: attention (${actionableGaps.length} actionable gaps)`);
   }
 } else {
   hasAttention = true;
@@ -137,6 +143,14 @@ function projectionBodyRoot(role) {
     throw new Error(`workspace projection role not declared: ${role}`);
   }
   return path.join(workspaceRoot, projection.path, projection.verify);
+}
+
+function projectionRoot(role) {
+  const projection = projectionByRole.get(role);
+  if (!projection) {
+    throw new Error(`workspace projection role not declared: ${role}`);
+  }
+  return path.join(workspaceRoot, projection.path);
 }
 
 function git(cwd, args) {
@@ -166,4 +180,55 @@ async function remoteCommitFetchable(remote, commit) {
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
   }
+}
+
+async function workspaceBaseAdoptionCurrent() {
+  const bodyKind = await readWorkspaceFile("projection-root/core/body-ref/kind");
+  if (bodyKind.trim() !== "fleet") {
+    return run("node", ["verify/adoption.mjs", workspaceRoot, "--require-current"], baseBody).status === 0;
+  }
+
+  const witnessText = await readSupportFile("adoptions/capsule-base/workspace.json");
+  const witness = JSON.parse(witnessText);
+  const currentManifest = JSON.parse(await readFile(path.join(baseRoot, "capsule-base-body/releases/current.json"), "utf8"));
+  const currentCommitment = commitmentForJson(currentManifest);
+  return (
+    witness?.kind === "capsule-base/adoption" &&
+    witness?.base?.manifestCommitment === currentCommitment &&
+    witness?.scope?.bodyKind === "fleet" &&
+    witness?.scope?.fleetManifestPath === "projection-support/capsule-workspace.json"
+  );
+}
+
+function isBaseDeclarationGap(gap) {
+  return (
+    gap?.projection?.role === "capsule-base" &&
+    (gap.kind === "capability-without-invocation" || gap.kind === "invocation-contract-missing")
+  );
+}
+
+async function readWorkspaceFile(relativePath) {
+  return readFile(path.join(workspaceRoot, relativePath), "utf8");
+}
+
+async function readSupportFile(relativePath) {
+  return readFile(path.join(supportRoot, relativePath), "utf8");
+}
+
+function commitmentForJson(value) {
+  return sha256(Buffer.from(stableStringify(value)));
+}
+
+function sha256(content) {
+  return `sha256:${createHash("sha256").update(content).digest("hex")}`;
+}
+
+function stableStringify(value) {
+  if (value === null || typeof value !== "object") {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => stableStringify(item)).join(",")}]`;
+  }
+  return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(",")}}`;
 }

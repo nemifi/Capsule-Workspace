@@ -104,7 +104,6 @@ projection-root/framework/CONCEPTS.md
 projection-root/policy/ARCHITECTURE.md
 projection-root/kit/ARCHITECTURE.md
 projection-root/kit/CONCEPTS.md
-projection-root/kit/interop/ADOPTION.md
 projection-root/kit/interop/ARCHITECTURE.md
 projection-root/kit/interop/manifest.json
 ```

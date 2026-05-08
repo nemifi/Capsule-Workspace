@@ -45,11 +45,13 @@ origin remains core
   -> interop-relation records optional finite continuity from accepted evidence covered participants and explicit edges
   -> event records bounded change evidence in context
   -> lineage keeps changes in projection form followable
+  -> materialization declares standard profiles features and toolchains for Capsule Generator
   -> migration preserves continuity between representations
   -> payload carries extensible content in context
   -> namespace and schema keep records and payloads readable
   -> interpretation reads meaning in context
   -> capability marks an actionable surface affordance
+  -> toolchain carries replaceable reference readers and verifiers without becoming root truth
 ```
 
 A projection may adopt only the records it needs. Bodies give adopted records
@@ -76,12 +78,14 @@ projection-kit:interop-relation | projection-kit | common-optional | projection-
 projection-kit:interop-session | projection-kit | common-optional | projection-kit:event,projection-kit:interop-compatibility,projection-kit:interop-fabric | projection-bodies | nucleus,origin,required-runtime,permission,enforcement,universal-log | optional-adoption-check | guard-target-admitted coordination instance with verified adapters covered roles ready participants lifecycle and failure policy
 projection-kit:interpretation | projection-kit | common-optional | projection-kit:context,projection-kit:payload | projection-bodies | nucleus,origin,truth-source,canonical-meaning | optional-adoption-check | contextual reading of meaning
 projection-kit:lineage | projection-kit | common-optional | projection-framework:relation,projection-kit:event | projection-bodies | nucleus,origin,history-root,universal-log,root-registry | optional-adoption-check | followable continuity through changes in projection form
+projection-kit:materialization | projection-kit | common-optional | projection-kit:toolchain | projection-bodies,capsule-generator | nucleus,origin,generator-runtime,template-store,package-manager,projection-validity | declaration-shape-check | standard profile feature and toolchain declarations for generator materialization
 projection-kit:migration | projection-kit | common-optional | projection-framework:relation,projection-kit:lineage | projection-bodies | nucleus,origin,projection-core-history,required-upgrade-path | optional-adoption-check | continuity-preserving transition between representations
 projection-kit:namespace | projection-kit | common-optional | projection-kit:context | projection-bodies | nucleus,origin,global-name-registry,identity,ownership | optional-adoption-check | naming scope
 projection-kit:payload | projection-kit | common-optional | projection-kit:context | projection-bodies | nucleus,origin,truth-source,canonical-meaning,validity | optional-adoption-check | extensible content in context
 projection-kit:schema | projection-kit | common-optional | projection-kit:namespace,projection-kit:payload | projection-bodies | nucleus,origin,truth-source,universal-type-system,projection-validity | optional-adoption-check | contextual reading shape for records or payloads
 projection-kit:surface | projection-kit | common-optional | projection-kit:context | projection-bodies | nucleus,origin,projection,production-root | optional-adoption-check | contact form through which a projection can be observed connected to or acted upon
 projection-kit:surface-manifest | projection-kit | common-optional | projection-kit:context,projection-kit:surface | projection-bodies | nucleus,origin,identity,production-root,truth-source | optional-adoption-check | optional record listing available surfaces in context
+projection-kit:toolchain | projection-kit | common-optional | projection-framework:relation,projection-kit:schema | projection-bodies | nucleus,origin,truth-source,projection-validity,required-runtime,body-implementation | optional-adoption-check | replaceable reference reader or verifier for projection declarations
 ```
 
 ## Notes
@@ -110,3 +114,11 @@ evidence, and optional relations. They do not mutate origin, establish
 identity, grant permission, capture consent, create a registry, impose one
 schema, run bodies, or become the source of truth for participating
 projections.
+
+Materialization records name standard profiles, features, toolchains, and
+generator receipt expectations without becoming the generator or carrying
+template, package, source, lockfile, or runtime weight in root kit.
+
+Toolchain records name replaceable reference readers and verifiers. They may
+make current work easier for humans or agents, but they do not make any
+language, package manager, build output, or support directory projection truth.
