@@ -10,8 +10,15 @@ import { verifyPolicyOrigin } from "./origin.mjs";
 import { checkProjectionPolicy } from "./policy.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
-const mode = process.argv[2] ?? "--policy";
-const instanceCount = process.argv[3];
+const ROOT_SURGERY_ENV = "PROJECTION_ROOT_SURGERY";
+const args = process.argv.slice(2);
+const rootSurgeryIndex = args.indexOf("--root-surgery");
+if (rootSurgeryIndex !== -1) {
+  args.splice(rootSurgeryIndex, 1);
+  process.env[ROOT_SURGERY_ENV] = "1";
+}
+const mode = args[0] ?? "--policy";
+const instanceCount = args[1];
 
 try {
   if (mode === "--core") {

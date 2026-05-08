@@ -31,6 +31,20 @@ operational support. Policy may allow that root entry without treating its
 contents as core, framework, kit, policy, body implementation, or projection
 validity.
 
+## Default Mutable Area
+
+Ordinary implementation, documentation, tooling, and proof work belongs in the
+current body declared by body-ref, or in `projection-support/`. In a fleet
+projection, the current body area is the set of member root entries named by the
+fleet manifest, plus `projection-support/`.
+
+Root material is sealed by default. Normal policy verification rejects git
+diffs outside the default mutable area, including root documents,
+`projection-root/`, framework, kit, policy, core, origin, nucleus, body-ref, and
+seed-owned system files. Set `PROJECTION_ROOT_SURGERY=1`, or pass
+`--root-surgery` to `projection-root/policy/verify/run.mjs`, only for an
+explicit root surgery or body replacement request.
+
 ## Seed Boundary
 
 `projection-root/policy/seed-manifest.json` declares which root paths are seed-owned, which root paths are projection-owned, and which family-level seed docs are forbidden. Seed ownership means the file was materialized from the Capsule Base scaffold so the capsule can run independently after creation; it is not a runtime dependency on Capsule Base. Projection-owned paths remain local claim material, current root documentation, active body ref target material, and the `projection-support/` boundary.
@@ -65,6 +79,7 @@ members.
 - active origin witness data and negative tamper proofs,
 - origin material diff guard for normal updates,
 - changed-origin, nested single body ref, and invalid fleet manifest rejection,
+- default mutable area git diff guard for ordinary work,
 - root PROJECTION, AGENTS, README, policy, and kit document policy,
 - document contract records and concept record graph shape,
 - invalid kit dependency, duplicate, cycle, and document-drift proofs,
@@ -82,6 +97,7 @@ the exact wording of the surrounding prose.
 id | obligation | scope
 policy:body-ref-root-placement | Policy rejects nested single body refs, reserved root entries, and invalid fleet body manifests so current body declarations cannot hide unrelated root shape. | projection-policy,projection-core,body
 policy:data-witness | The policy layout carries active origin witness data and root policy verification. | projection-policy
+policy:default-mutable-area-diff-guard | Normal policy verification rejects git diffs outside the current body or projection-support unless explicit root surgery or body replacement is requested. | projection-policy,repository,root-docs,body,projection-support
 policy:kit-protected-root-layer | This projection policy keeps projection-root/kit as a protected root layer while kit adoption remains optional and not projection validity. | projection-policy,projection-kit,body
 policy:origin-change-different-claim | Active origin changes remain different projection claims unless explicitly handled as root surgery. | projection-policy,projection-core
 policy:projection-local | Projection policy stays local to this projection and outside core, framework, kit, and body implementation. | projection-policy,projection-core,projection-framework,projection-kit,body

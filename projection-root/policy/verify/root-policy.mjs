@@ -10,6 +10,7 @@ import {
 const REQUIRED_POLICY_SECTIONS = [
   "Current Layout",
   "Policy Role",
+  "Default Mutable Area",
   "Seed Boundary",
   "Origin Witness",
   "Verification",
@@ -19,6 +20,7 @@ const REQUIRED_POLICY_SECTIONS = [
 const REQUIRED_POLICY_CONTRACTS = [
   "policy:body-ref-root-placement",
   "policy:data-witness",
+  "policy:default-mutable-area-diff-guard",
   "policy:kit-protected-root-layer",
   "policy:origin-change-different-claim",
   "policy:projection-local",
@@ -32,6 +34,12 @@ const REQUIRED_POLICY_OBLIGATION_TERMS = {
     "Policy rejects",
     "nested single body refs",
     "fleet body manifests"
+  ],
+  "policy:default-mutable-area-diff-guard": [
+    "Normal policy verification rejects",
+    "current body",
+    "projection-support",
+    "explicit root surgery"
   ],
   "policy:kit-protected-root-layer": [
     "projection-root/kit",

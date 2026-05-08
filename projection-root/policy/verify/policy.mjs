@@ -182,14 +182,15 @@ const REQUIRED_KIT_CONCEPTS = [
 export async function checkProjectionPolicy(root) {
   const core = await verifyProjectionCore(root);
 
-  const ignoredRootEntries = await bodyRefIgnoredRootEntries(root, core.bodyRef);
   await assertPolicyBodyRef(root, core.bodyRef);
+  const ignoredRootEntries = await bodyRefIgnoredRootEntries(root, core.bodyRef);
   await checkPolicyBodyRefRejectsNestedPath(root, core);
   await checkPolicyBodyRefRejectsRootFleetManifest(root, core);
   await checkPolicyBodyRefRejectsFleetOwnedRootSupport(root, core);
   await checkProjectionFramework(root);
   await verifyPolicyOrigin(root);
   checkOriginMaterialDiffGuard(root);
+  checkDefaultMutableAreaDiffGuard(root, ignoredRootEntries);
   await checkOriginWitnessRejectsTamperedData(root, core);
   await checkOriginWitnessRejectsChangedOrigin(root, core);
 
@@ -217,6 +218,7 @@ export async function checkProjectionPolicy(root) {
   await checkPolicyRecordReferenceProofs(root, {
     frameworkConceptIds
   });
+  checkDefaultMutableAreaGuardProofs();
   await checkRootAgentRules(root);
   await checkRootReadme(root);
   await checkRootDocumentContractProofs(root);
@@ -313,6 +315,41 @@ function checkOriginMaterialDiffGuard(root) {
   }
 }
 
+function checkDefaultMutableAreaDiffGuard(root, bodyRootEntries) {
+  if (process.env[ROOT_SURGERY_ENV] === "1") {
+    return;
+  }
+
+  if (!isGitWorktree(root)) {
+    return;
+  }
+
+  const allowedRoots = defaultMutableRoots(bodyRootEntries);
+  const changed = gitChangedPaths(root);
+  const protectedChanges = changed.filter((changedPath) => !isInsideAnyRoot(changedPath, allowedRoots));
+
+  if (protectedChanges.length > 0) {
+    throw new Error(
+      `protected root material changed during ordinary verification: ${protectedChanges.join(", ")}. Ordinary work must stay in the current body or projection-support. Set ${ROOT_SURGERY_ENV}=1 only for explicit root surgery or body replacement.`
+    );
+  }
+}
+
+function checkDefaultMutableAreaGuardProofs() {
+  const allowed = defaultMutableRoots(["body"]);
+
+  assertJsonList(
+    pathsOutsideDefaultMutableArea(["body/src/app.js", "projection-support/doctor.mjs"], allowed),
+    [],
+    "default mutable area proof allows body and support"
+  );
+  assertJsonList(
+    pathsOutsideDefaultMutableArea(["AGENTS.md", "projection-root/policy/verify/policy.mjs"], allowed),
+    ["AGENTS.md", "projection-root/policy/verify/policy.mjs"],
+    "default mutable area proof rejects root material"
+  );
+}
+
 function isGitWorktree(root) {
   const result = spawnSync("git", ["rev-parse", "--is-inside-work-tree"], {
     cwd: root,
@@ -322,8 +359,8 @@ function isGitWorktree(root) {
   return result.status === 0 && result.stdout.trim() === "true";
 }
 
-function gitChangedPaths(root, paths) {
-  const result = spawnSync("git", ["diff", "--name-only", "HEAD", "--", ...paths], {
+function gitChangedPaths(root, paths = null) {
+  const result = spawnSync("git", ["status", "--porcelain=v1", "-z", "--untracked-files=all"], {
     cwd: root,
     encoding: "utf8"
   });
@@ -333,14 +370,48 @@ function gitChangedPaths(root, paths) {
   }
 
   if (result.status !== 0) {
-    throw new Error(result.stderr.trim() || "git diff failed for origin material guard");
+    throw new Error(result.stderr.trim() || "git status failed for policy diff guard");
   }
 
-  return result.stdout
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
+  const changed = parseGitStatusPaths(result.stdout);
+  return changed
+    .filter((changedPath) => paths === null || isInsideAnyRoot(changedPath, paths))
     .sort();
+}
+
+function parseGitStatusPaths(output) {
+  const fields = output.split("\0").filter(Boolean);
+  const paths = [];
+
+  for (let index = 0; index < fields.length; index += 1) {
+    const entry = fields[index];
+    if (entry.length < 4) {
+      continue;
+    }
+
+    const status = entry.slice(0, 2);
+    paths.push(entry.slice(3));
+    if (status.includes("R") || status.includes("C")) {
+      index += 1;
+      if (fields[index]) {
+        paths.push(fields[index]);
+      }
+    }
+  }
+
+  return [...new Set(paths)].sort();
+}
+
+function defaultMutableRoots(bodyRootEntries) {
+  return [...bodyRootEntries, PROJECTION_SUPPORT_ROOT].sort();
+}
+
+function pathsOutsideDefaultMutableArea(paths, allowedRoots) {
+  return paths.filter((changedPath) => !isInsideAnyRoot(changedPath, allowedRoots)).sort();
+}
+
+function isInsideAnyRoot(relativePath, roots) {
+  return roots.some((rootEntry) => relativePath === rootEntry || relativePath.startsWith(`${rootEntry}/`));
 }
 
 async function checkOriginWitnessRejectsChangedOrigin(root, core) {

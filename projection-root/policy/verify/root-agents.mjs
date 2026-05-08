@@ -10,6 +10,7 @@ import {
 const REQUIRED_ROOT_AGENT_SECTIONS = [
   "Authority",
   "Projection Boundary",
+  "Default Mutable Area",
   "Workflow",
   "Verification",
   "Commit Policy",
@@ -21,6 +22,7 @@ const REQUIRED_ROOT_AGENT_CONTRACTS = [
   "agents:body-rules-delegated",
   "agents:branch-explicit",
   "agents:commit-scoped-current-branch",
+  "agents:default-mutable-area",
   "agents:origin-protected",
   "agents:projection-support-boundary",
   "agents:root-body-boundary",
@@ -28,6 +30,12 @@ const REQUIRED_ROOT_AGENT_CONTRACTS = [
   "agents:workflow-tools"
 ];
 const REQUIRED_ROOT_AGENT_OBLIGATION_TERMS = {
+  "agents:default-mutable-area": [
+    "Ordinary implementation",
+    "current body",
+    "projection-support",
+    "explicit root surgery"
+  ],
   "agents:origin-protected": ["Active origin", "nucleus", "protected"],
   "agents:projection-support-boundary": [
     "Projection-specific operational support",
