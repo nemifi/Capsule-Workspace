@@ -8,7 +8,7 @@
       "role": "capsule-base"
     },
     {
-      "commit": "b56a48dd1e79516d6b23be03f6eae3690e6c7e22",
+      "commit": "ca80c38ca3eb3271d9e508ea139bb5f630856191",
       "path": "Capsule Generator",
       "remote": "https://github.com/nemifi/Capsule-Generator.git",
       "role": "capsule-generator"
