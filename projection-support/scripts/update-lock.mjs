@@ -4,8 +4,9 @@ import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const workspaceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const lockPath = path.join(workspaceRoot, "capsule-workspace.lock.json");
+const supportRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const workspaceRoot = path.dirname(supportRoot);
+const lockPath = path.join(supportRoot, "capsule-workspace.lock.json");
 const lock = JSON.parse(await readFile(lockPath, "utf8"));
 
 const updated = {

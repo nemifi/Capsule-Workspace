@@ -3,8 +3,9 @@
 Portable root orientation for a projection capsule.
 
 This document stays valid across projection names, bodies, surfaces, proofs,
-kits, and stacks. The repository, root, body, documents, proof, kit, framework,
-and name are finite arrangements, not the whole system or production root.
+kits, support files, and stacks. The repository, root, body, documents, proof,
+kit, framework, support boundary, and name are finite arrangements, not the
+whole system or production root.
 
 ## Premise
 
@@ -55,6 +56,7 @@ projection-root/core/        sealed declarations for the current capsule shape
 projection-root/framework/   generic grammar and relation verification
 projection-root/kit/         optional reusable participation grammar, when present
 projection-root/policy/      origin witness and root policy for this projection
+projection-support/          projection-specific operational support boundary
 <current-body>/         optional implementation body declared by body-ref
 <fleet-manifest>        optional fleet body manifest declared by body-ref
 PROJECTION.md           root orientation
@@ -67,6 +69,14 @@ The current body path or fleet manifest is declared by
 whose members participate as the current body. The root is orientation and
 boundary, not production root.
 
+Projection-specific operational support belongs under `projection-support/`.
+Manifests, locks, bootstrap or update scripts, doctors, workspace verifiers,
+E2E proofs, generated support artifacts, and similar finite operational files
+must not accumulate as ad hoc root entries. A fleet manifest may live under
+`projection-support/`; its declared members may remain visible root entries.
+`projection-support/` is support, not origin material, projection validity,
+body implementation, or a new center.
+
 ## Layers
 
 ```txt
@@ -74,6 +84,7 @@ Projection Core = sealed declarations required for a capsule projection claim
 Projection Framework = generic grammar and relation support
 Projection Kit = optional reusable participation grammar
 Projection Policy = this projection's origin witness and root policy
+Projection Support = projection-specific operational support outside validity
 Projection Body = replaceable implementation and meaning
 ```
 
@@ -92,9 +103,11 @@ BodyRef = current body declaration, either single body or fleet body manifest
 Framework verifies generic capsule grammar and relation. Kit names optional
 reusable participation forms. This capsule carries a protected kit layer, but
 kit adoption remains optional and never becomes projection validity. Policy
-carries this projection's witness and root rules. Body owns implementation,
-behavior, runtime, surfaces, documents, proof details, tools, tests, packages,
-growth, and meaning.
+carries this projection's witness and root rules. Support holds finite
+operational material for this projection without becoming core, framework, kit,
+policy, body, or validity. Body owns implementation, behavior, runtime,
+surfaces, documents, proof details, tools, tests, packages, growth, and
+meaning.
 
 The dependency direction is one way:
 
@@ -175,6 +188,7 @@ required by a capsule projection claim  -> Projection Core
 generic grammar or relation support     -> Projection Framework
 reusable optional participation grammar -> Projection Kit
 this projection's root witness/policy   -> Projection Policy
+projection-specific operational support -> Projection Support
 implementation, runtime, or meaning     -> Projection Body
 ```
 
@@ -199,5 +213,6 @@ projection:nucleus-length-nonshrinking | The current atom nucleus token length r
 projection:nucleus-opaque | The nucleus remains an irreducible opaque token and does not carry identity, meaning, state, history, or ownership. | projection-core,root-docs
 projection:origin-change-different-claim | Changing the active origin is a different projection claim unless explicitly treated as root surgery. | projection-core,projection-policy
 projection:placement-keeps-core-small | The placement test keeps most concepts outside projection-core unless required by a capsule projection claim. | projection-core,projection-framework,projection-kit,body
+projection:support-boundary | Projection-specific operational support lives under projection-support and remains outside projection-core, projection validity, and body implementation. | projection-support,projection-core,body
 projection:verification-witness | Verification remains a witness to structure and relation, never a source of nucleus, truth, meaning, or validity. | projection-framework,projection-policy
 ```

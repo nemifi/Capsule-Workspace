@@ -13,6 +13,7 @@ workspace root
   AGENTS.md
   README.md
   .gitignore
+  projection-support/
 
 projection policy
   projection-root/policy/
@@ -39,8 +40,16 @@ projection core
     boundary/
     body-ref/
 
+projection support
+  projection-support/
+    capsule-workspace.json
+    capsule-workspace.lock.json
+    doctor-workspace.mjs
+    e2e-workspace.mjs
+    scripts/
+    verify-workspace.mjs
+
 body
-  fleet manifest
   Capsule Base
   Capsule Generator
   Capsule Directory
@@ -49,8 +58,9 @@ body
 ```
 
 The current body path or fleet manifest is declared by body-ref rather than by
-root convention. For this projection, body-ref declares a fleet manifest, and
-the child projection roots plus workspace support tools remain body-owned.
+root convention. For this projection, body-ref declares a fleet manifest under
+`projection-support/`, and the child projection roots remain visible body
+members at the workspace root.
 
 ## Boundaries
 
@@ -67,12 +77,16 @@ validity.
 `projection-root/policy/` owns this projection's origin witness, root document
 policy, and root placement rules.
 
-The fleet body owns the child projection checkouts, the workspace manifest, the
-workspace lock, bootstrap/update scripts, workspace doctor, workspace verifier,
-and E2E proof. Body-local docs and verification stay inside the current body.
+`projection-support/` owns projection-specific operational support: the
+workspace manifest, workspace lock, bootstrap/update scripts, workspace doctor,
+workspace verifier, and E2E proof. It is not projection core, projection
+validity, body implementation, or a replacement for body-local meaning.
+
+The fleet body owns the child projection checkouts. Body-local docs and
+verification stay inside the current body.
 
 The root avoids conventional app configuration so implementation shape stays
-body-owned.
+body-owned, and ad hoc operational support files do not live at root.
 
 ## Root Docs
 
@@ -93,7 +107,7 @@ projection-root/kit/interop/manifest.json
 ## Reading Order
 
 1. Read `PROJECTION.md` for placement law.
-2. Read the fleet manifest for the current child projection body members.
+2. Read `projection-support/capsule-workspace.json` for the current child projection body members.
 3. Read each child projection's body adoption records and meaning owners.
 4. Use the workspace doctor for a quick fleet health read.
 
@@ -102,7 +116,7 @@ projection-root/kit/interop/manifest.json
 Run the workspace proof from this folder:
 
 ```sh
-node verify-workspace.mjs
+node projection-support/verify-workspace.mjs
 ```
 
 That command verifies every child body, scans the workspace with Capsule
@@ -114,7 +128,7 @@ apply/reobserve E2E proof.
 Use the doctor when you want a quick health read without every proof:
 
 ```sh
-node doctor-workspace.mjs
+node projection-support/doctor-workspace.mjs
 ```
 
 Projection policy and framework checks are also available:
@@ -142,6 +156,7 @@ readme:body-ref-current-body | The current body path or fleet manifest is declar
 readme:layer-boundaries | The README orients the ownership boundaries among core, framework, protected kit, policy, and body. | root-docs,projection-core,projection-framework,projection-kit,projection-policy,body
 readme:no-root-app-config | The root avoids conventional app configuration so implementation shape stays body-owned. | repository,body
 readme:orientation-not-center | The README orients one current projection without making the name, repo, or document the center. | root-docs,repository
+readme:projection-support-boundary | Projection-specific operational manifests, locks, scripts, doctors, workspace verifiers, E2E proofs, and generated support artifacts live under projection-support rather than as ad hoc root files. | projection-support,repository,body
 readme:reading-order-adoption-meaning | The reading order points from root placement to body adoption records and meaning owners. | root-docs,body
 readme:replacement-nonregistry-proof | Replacement proof keeps body-ref change and finite candidates from becoming a registry. | projection-framework,projection-core
 readme:shape-layers-listed | The root shape lists policy, framework, kit, origin, core, and current body roles. | repository,root-docs

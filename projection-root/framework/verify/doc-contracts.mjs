@@ -6,6 +6,7 @@ const DEFAULT_ALLOWED_SCOPES = new Set([
   "projection-framework",
   "projection-kit",
   "projection-policy",
+  "projection-support",
   "projection-root/core",
   "projection-root/framework",
   "projection-root/kit",

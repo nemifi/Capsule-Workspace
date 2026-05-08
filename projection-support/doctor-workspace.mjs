@@ -5,7 +5,8 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const workspaceRoot = path.dirname(fileURLToPath(import.meta.url));
+const supportRoot = path.dirname(fileURLToPath(import.meta.url));
+const workspaceRoot = path.dirname(supportRoot);
 const args = new Set(process.argv.slice(2));
 for (const arg of args) {
   if (arg !== "--remote") {
@@ -13,8 +14,8 @@ for (const arg of args) {
   }
 }
 const checkRemote = args.has("--remote");
-const workspace = await readJson("capsule-workspace.json");
-const lock = await readJson("capsule-workspace.lock.json");
+const workspace = await readSupportJson("capsule-workspace.json");
+const lock = await readSupportJson("capsule-workspace.lock.json");
 const lockByPath = new Map(lock.projections.map((projection) => [projection.path, projection]));
 const roots = workspace.projections.map((projection) => path.join(workspaceRoot, projection.path));
 const baseBody = path.join(workspaceRoot, "Capsule Base", "capsule-base-body");
@@ -117,8 +118,8 @@ if (hasAttention) {
 
 console.log("capsule workspace: healthy");
 
-async function readJson(relativePath) {
-  return JSON.parse(await readFile(path.join(workspaceRoot, relativePath), "utf8"));
+async function readSupportJson(relativePath) {
+  return JSON.parse(await readFile(path.join(supportRoot, relativePath), "utf8"));
 }
 
 function git(cwd, args) {

@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { readFile, readdir, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import {
@@ -37,6 +37,7 @@ const POLICY_RESERVED_ROOT_ENTRIES = new Set([
   "package-lock.json",
   "package.json",
   "packages",
+  "projection-support",
   "projection-root",
   "projection-root/core",
   "projection-root/framework",
@@ -49,6 +50,7 @@ const POLICY_RESERVED_ROOT_ENTRIES = new Set([
   "tsconfig.json",
   "verify"
 ]);
+const PROJECTION_SUPPORT_ROOT = "projection-support";
 const POLICY_ORIGIN_PROOF_NUCLEUS = "policyOriginProofNucleus000000000000000000000000";
 const TAMPERED_POLICY_ORIGIN_COMMITMENT =
   "sha256:0000000000000000000000000000000000000000000000000000000000000000";
@@ -131,6 +133,7 @@ const ALLOWED_POLICY_ROOT_ENTRIES = [
   "AGENTS.md",
   "PROJECTION.md",
   "README.md",
+  "projection-support",
   "projection-root"
 ];
 const ALLOWED_POLICY_DIRECTORY_ENTRIES = [
@@ -180,6 +183,8 @@ export async function checkProjectionPolicy(root) {
   const ignoredRootEntries = await bodyRefIgnoredRootEntries(root, core.bodyRef);
   await assertPolicyBodyRef(root, core.bodyRef);
   await checkPolicyBodyRefRejectsNestedPath(root, core);
+  await checkPolicyBodyRefRejectsRootFleetManifest(root, core);
+  await checkPolicyBodyRefRejectsFleetOwnedRootSupport(root, core);
   await checkProjectionFramework(root);
   await verifyPolicyOrigin(root);
   checkOriginMaterialDiffGuard(root);
@@ -225,6 +230,60 @@ async function checkPolicyBodyRefRejectsNestedPath(root, core) {
       () => verifyPolicyBodyRef(candidateRoot),
       "nested body-ref policy proof",
       "body-ref"
+    );
+  });
+}
+
+async function checkPolicyBodyRefRejectsRootFleetManifest(root, core) {
+  await withProofCopy(root, "projection-policy-body-ref-proof", ["projection-root/core"], async (candidateRoot) => {
+    await writeBodyRef(candidateRoot, core.bodyRef, "fleet.json", "fleet");
+    await writeFleetManifest(candidateRoot, "fleet.json", {
+      body: {
+        kind: "fleet"
+      },
+      kind: "projection-policy/fleet-proof",
+      projections: [
+        {
+          path: "member",
+          role: "member",
+          verify: "body"
+        }
+      ],
+      version: 1
+    });
+
+    await assertRejects(
+      () => verifyPolicyBodyRef(candidateRoot),
+      "root fleet manifest policy proof",
+      "projection-support"
+    );
+  });
+}
+
+async function checkPolicyBodyRefRejectsFleetOwnedRootSupport(root, core) {
+  await withProofCopy(root, "projection-policy-body-ref-proof", ["projection-root/core"], async (candidateRoot) => {
+    const ref = `${PROJECTION_SUPPORT_ROOT}/fleet.json`;
+    await writeBodyRef(candidateRoot, core.bodyRef, ref, "fleet");
+    await writeFleetManifest(candidateRoot, ref, {
+      body: {
+        kind: "fleet",
+        ownedPaths: ["doctor.mjs"]
+      },
+      kind: "projection-policy/fleet-proof",
+      projections: [
+        {
+          path: "member",
+          role: "member",
+          verify: "body"
+        }
+      ],
+      version: 1
+    });
+
+    await assertRejects(
+      () => verifyPolicyBodyRef(candidateRoot),
+      "fleet owned root support policy proof",
+      "body.ownedPaths must be empty"
     );
   });
 }
@@ -467,7 +526,7 @@ async function checkSeedBoundaryManifest(root, core) {
   assertEqual(manifest.version, 1, label + ".version");
   assertEqual(manifest.capsuleOwnedPathSource, "projection-root/core/body-ref", label + ".capsuleOwnedPathSource");
   assertJsonList(manifest.seedOwnedPaths, [".gitignore", "AGENTS.md", "PROJECTION.md", "projection-root/framework", "projection-root/kit", "projection-root/policy/ARCHITECTURE.md", "projection-root/policy/verify"], label + ".seedOwnedPaths");
-  assertJsonList(manifest.projectionOwnedPaths, ["README.md", "projection-root/core", "projection-root/policy/origin-witness"], label + ".projectionOwnedPaths");
+  assertJsonList(manifest.projectionOwnedPaths, ["README.md", "projection-root/core", "projection-root/policy/origin-witness", "projection-support"], label + ".projectionOwnedPaths");
   assertJsonList(manifest.forbiddenSeedFamilyDocs, ["projection-root/kit/interop/*/ADOPTION.md", "projection-root/kit/interop/*/ARCHITECTURE.md"], label + ".forbiddenSeedFamilyDocs");
   await assertPolicyBodyRef(root, core.bodyRef);
 }
@@ -507,22 +566,13 @@ async function bodyRefIgnoredRootEntries(root, bodyRef) {
 
   const manifest = await readFleetBodyManifest(root, bodyRef.ref);
   return uniqueRootEntries([
-    bodyRef.ref,
-    ...manifest.memberRootEntries,
-    ...manifest.bodyOwnedRootEntries
+    ...manifest.memberRootEntries
   ]);
 }
 
 async function readFleetBodyManifest(root, ref) {
-  const segments = ref.split("/");
-  if (segments.length !== 1 || !ref.endsWith(".json")) {
-    throw new Error("fleet body-ref must point at one manifest root file");
-  }
-  if (POLICY_RESERVED_ROOT_ENTRIES.has(ref)) {
-    throw new Error("fleet body-ref must not point at a reserved root entry");
-  }
+  assertFleetManifestRef(ref);
 
-  const label = ref;
   const text = await readFile(path.join(root, ref), "utf8");
   let manifest;
   try {
@@ -553,23 +603,42 @@ async function readFleetBodyManifest(root, ref) {
   if (!Array.isArray(bodyOwnedPaths)) {
     throw new Error("fleet body manifest body.ownedPaths must be an array");
   }
-  const bodyOwnedRootEntries = [];
-  for (const [index, ownedPath] of bodyOwnedPaths.entries()) {
-    assertFleetRootEntry(ownedPath, `fleet body manifest body.ownedPaths[${index}]`);
-    bodyOwnedRootEntries.push(ownedPath);
-  }
-  assertUniqueRootEntries(bodyOwnedRootEntries, "fleet body manifest body.ownedPaths");
-
-  for (const rootEntry of [...memberRootEntries, ...bodyOwnedRootEntries]) {
-    if (rootEntry === ref) {
-      throw new Error(`${label} must not list its own body-ref manifest as body-owned`);
-    }
+  if (bodyOwnedPaths.length > 0) {
+    throw new Error(
+      "fleet body manifest body.ownedPaths must be empty; projection-specific operational support belongs under projection-support"
+    );
   }
 
   return {
-    bodyOwnedRootEntries,
     memberRootEntries
   };
+}
+
+function assertFleetManifestRef(ref) {
+  const segments = ref.split("/");
+  if (
+    segments.length !== 2 ||
+    segments[0] !== PROJECTION_SUPPORT_ROOT ||
+    !segments[1].endsWith(".json")
+  ) {
+    throw new Error("fleet body-ref must point at one manifest file under projection-support");
+  }
+  assertFleetManifestFileName(segments[1], "fleet body-ref manifest file");
+}
+
+function assertFleetManifestFileName(value, label) {
+  if (
+    typeof value !== "string" ||
+    value.length <= ".json".length ||
+    value.trim() !== value ||
+    value.includes("/") ||
+    value.includes("\\") ||
+    value === "." ||
+    value === ".." ||
+    value.startsWith(".")
+  ) {
+    throw new Error(`${label} must be one visible JSON file`);
+  }
 }
 
 function assertFleetRootEntry(value, label) {
@@ -600,10 +669,10 @@ function uniqueRootEntries(values) {
   return values.filter((value, index) => values.indexOf(value) === index);
 }
 
-async function writeBodyRef(root, currentBodyRef, ref) {
+async function writeBodyRef(root, currentBodyRef, ref, kind = currentBodyRef.kind) {
   const values = {
     basis: currentBodyRef.basis,
-    kind: currentBodyRef.kind,
+    kind,
     ref
   };
 
@@ -615,6 +684,12 @@ async function writeBodyRef(root, currentBodyRef, ref) {
     "projection-root/core/body-ref/seal",
     sealCapsuleValues(values, BODY_REF_SEAL_FIELDS)
   );
+}
+
+async function writeFleetManifest(root, relativePath, manifest) {
+  const filePath = path.join(root, relativePath);
+  await mkdir(path.dirname(filePath), { recursive: true });
+  await writeFile(filePath, `${stableStringify(manifest)}\n`, "utf8");
 }
 
 async function writeValue(root, relativePath, value) {

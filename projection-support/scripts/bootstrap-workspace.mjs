@@ -5,8 +5,9 @@ import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const workspaceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const lock = await readJson("capsule-workspace.lock.json");
+const supportRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const workspaceRoot = path.dirname(supportRoot);
+const lock = await readSupportJson("capsule-workspace.lock.json");
 const allowDirty = process.argv.includes("--allow-dirty");
 
 for (const projection of lock.projections) {
@@ -29,8 +30,8 @@ for (const projection of lock.projections) {
 
 console.log("capsule workspace bootstrap: ok");
 
-async function readJson(relativePath) {
-  return JSON.parse(await readFile(path.join(workspaceRoot, relativePath), "utf8"));
+async function readSupportJson(relativePath) {
+  return JSON.parse(await readFile(path.join(supportRoot, relativePath), "utf8"));
 }
 
 function validateLockEntry(projection) {

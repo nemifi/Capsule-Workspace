@@ -5,7 +5,8 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-const workspaceRoot = path.dirname(fileURLToPath(import.meta.url));
+const supportRoot = path.dirname(fileURLToPath(import.meta.url));
+const workspaceRoot = path.dirname(supportRoot);
 const tempRoot = await mkdtemp(path.join(os.tmpdir(), "capsule-workspace-e2e-"));
 const targetRoot = path.join(tempRoot, "Generated Projection");
 const specPath = path.join(tempRoot, "spec.json");

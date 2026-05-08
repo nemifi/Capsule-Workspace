@@ -4,8 +4,9 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const workspaceRoot = path.dirname(fileURLToPath(import.meta.url));
-const workspace = JSON.parse(await readFile(path.join(workspaceRoot, "capsule-workspace.json"), "utf8"));
+const supportRoot = path.dirname(fileURLToPath(import.meta.url));
+const workspaceRoot = path.dirname(supportRoot);
+const workspace = JSON.parse(await readFile(path.join(supportRoot, "capsule-workspace.json"), "utf8"));
 
 for (const projection of workspace.projections) {
   const bodyRoot = path.join(workspaceRoot, projection.path, projection.verify);
@@ -22,8 +23,8 @@ for (const goal of ["bootstrap", "fleet-update", "verify"]) {
 }
 runCapabilityGraph(osBody, roots);
 
-run("node", ["doctor-workspace.mjs"], workspaceRoot, "workspace doctor");
-run("node", ["e2e-workspace.mjs"], workspaceRoot, "workspace e2e");
+run("node", ["projection-support/doctor-workspace.mjs"], workspaceRoot, "workspace doctor");
+run("node", ["projection-support/e2e-workspace.mjs"], workspaceRoot, "workspace e2e");
 
 console.log("capsule workspace: ok");
 

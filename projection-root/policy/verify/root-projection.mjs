@@ -35,6 +35,7 @@ const REQUIRED_PROJECTION_CONTRACTS = [
   "projection:nucleus-opaque",
   "projection:origin-change-different-claim",
   "projection:placement-keeps-core-small",
+  "projection:support-boundary",
   "projection:verification-witness"
 ];
 const REQUIRED_PROJECTION_OBLIGATION_TERMS = {
@@ -45,6 +46,11 @@ const REQUIRED_PROJECTION_OBLIGATION_TERMS = {
   "projection:origin-change-different-claim": [
     "Changing the active origin",
     "different projection claim"
+  ],
+  "projection:support-boundary": [
+    "Projection-specific operational support",
+    "projection-support",
+    "outside projection-core"
   ]
 };
 

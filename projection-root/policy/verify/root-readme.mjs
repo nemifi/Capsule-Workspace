@@ -22,6 +22,7 @@ const REQUIRED_README_CONTRACTS = [
   "readme:layer-boundaries",
   "readme:no-root-app-config",
   "readme:orientation-not-center",
+  "readme:projection-support-boundary",
   "readme:reading-order-adoption-meaning",
   "readme:replacement-nonregistry-proof",
   "readme:shape-layers-listed",
@@ -32,6 +33,11 @@ const REQUIRED_README_OBLIGATION_TERMS = {
   "readme:no-root-app-config": [
     "root avoids conventional app configuration",
     "body-owned"
+  ],
+  "readme:projection-support-boundary": [
+    "projection-support",
+    "operational",
+    "ad hoc root files"
   ]
 };
 

@@ -22,6 +22,7 @@ const REQUIRED_POLICY_CONTRACTS = [
   "policy:kit-protected-root-layer",
   "policy:origin-change-different-claim",
   "policy:projection-local",
+  "policy:projection-support-boundary",
   "policy:seed-boundary-manifest",
   "policy:verification-covers-witness-records",
   "policy:witness-not-hardcoded"
@@ -41,6 +42,11 @@ const REQUIRED_POLICY_OBLIGATION_TERMS = {
     "Active origin changes",
     "different projection claims",
     "root surgery"
+  ],
+  "policy:projection-support-boundary": [
+    "projection-support",
+    "ad hoc root support files",
+    "root-level fleet manifests"
   ],
   "policy:seed-boundary-manifest": [
     "canonical seed boundary manifest",

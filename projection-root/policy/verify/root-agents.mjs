@@ -22,12 +22,18 @@ const REQUIRED_ROOT_AGENT_CONTRACTS = [
   "agents:branch-explicit",
   "agents:commit-scoped-current-branch",
   "agents:origin-protected",
+  "agents:projection-support-boundary",
   "agents:root-body-boundary",
   "agents:verification-routes",
   "agents:workflow-tools"
 ];
 const REQUIRED_ROOT_AGENT_OBLIGATION_TERMS = {
-  "agents:origin-protected": ["Active origin", "nucleus", "protected"]
+  "agents:origin-protected": ["Active origin", "nucleus", "protected"],
+  "agents:projection-support-boundary": [
+    "Projection-specific operational support",
+    "projection-support",
+    "ad hoc root files"
+  ]
 };
 
 export async function checkRootAgentRules(root) {

@@ -34,6 +34,10 @@ If local discovery cannot resolve a real blocker, stop and name it precisely.
 - Keep `projection-root/core/` declaration-only. Do not move implementation,
   runtime behavior, docs lists, package lists, proof details, reusable tooling,
   history, or conventional app shape into root core.
+- Keep projection-specific operational support under `projection-support/`.
+  Manifests, locks, bootstrap/update scripts, doctors, workspace verifiers,
+  E2E proofs, and generated support artifacts must not accumulate as ad hoc
+  root files.
 - Do not change the active origin, nucleus, or policy origin witness as a
   normal update. Treat that as root surgery or a different projection claim
   unless the user explicitly asks for it.
@@ -87,6 +91,7 @@ agents:body-rules-delegated | Body-specific agent rules are delegated through th
 agents:branch-explicit | Branch creation or switching requires an explicit user request, with codex prefix only when an unnamed new branch is requested. | agents,repository
 agents:commit-scoped-current-branch | Completed scoped assistant changes are committed and pushed to the current branch without branch switching. | agents,repository
 agents:origin-protected | Active origin, nucleus, policy origin witness, and nonshrinking nucleus length stay protected unless explicitly requested. | agents,projection-core,projection-policy
+agents:projection-support-boundary | Projection-specific operational support stays under projection-support rather than accumulating as ad hoc root files. | agents,projection-support,repository
 agents:root-body-boundary | Root ownership and body implementation ownership remain separated. | agents,projection-core,body
 agents:verification-routes | Agent verification routes name policy, framework, core, replacement, body-local, and documentation checks. | agents,projection-framework,projection-policy,body
 agents:workflow-tools | Root workflow keeps search, manual edits, and prose scope rules discoverable. | agents,repository
