@@ -72,6 +72,21 @@ for (const goal of ["bootstrap", "fleet-update", "verify"]) {
   }
 }
 
+const graph = run("node", ["bin/capos.mjs", "capability-graph", ...roots, "--json"], osBody);
+if (graph.status === 0) {
+  const report = JSON.parse(graph.stdout);
+  const gapCount = report.gaps.length;
+  if (gapCount === 0) {
+    console.log(`- capability graph: ${report.summary.capabilities} capabilities, ${report.summary.invocations} invocations, no gaps`);
+  } else {
+    hasAttention = true;
+    console.log(`- capability graph: attention (${gapCount} gaps)`);
+  }
+} else {
+  hasAttention = true;
+  console.log("- capability graph: attention");
+}
+
 if (hasAttention) {
   console.log("capsule workspace: attention");
   process.exit(1);

@@ -10,6 +10,7 @@ const tempRoot = await mkdtemp(path.join(os.tmpdir(), "capsule-workspace-e2e-"))
 const targetRoot = path.join(tempRoot, "Generated Projection");
 const specPath = path.join(tempRoot, "spec.json");
 const planPath = path.join(tempRoot, "update-plan.json");
+const applyReportPath = path.join(tempRoot, "apply-report.json");
 
 try {
   await writeFile(specPath, JSON.stringify({
@@ -46,6 +47,9 @@ try {
   step("route generated verification", "node", ["bin/capos.mjs", "route", "verify", targetRoot], osBody);
   step("plan generated update", "node", ["bin/capupd.mjs", "plan", targetRoot, "--base", baseRoot, "--out", planPath], updaterBody);
   step("preflight generated update", "node", ["bin/capupd.mjs", "preflight", planPath, "--base", baseRoot], updaterBody);
+  step("apply generated update", "node", ["bin/capupd.mjs", "apply", planPath, "--base", baseRoot, "--out", applyReportPath], updaterBody);
+  step("inspect applied projection", "node", ["bin/capdir.mjs", "inspect", targetRoot], directoryBody);
+  step("route applied verification", "node", ["bin/capos.mjs", "route", "verify", targetRoot], osBody);
 
   console.log("capsule workspace e2e: ok");
 } finally {

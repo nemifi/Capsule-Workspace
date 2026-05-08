@@ -20,6 +20,7 @@ const roots = workspace.projections.map((projection) => path.join(workspaceRoot,
 for (const goal of ["bootstrap", "fleet-update", "verify"]) {
   run("node", ["bin/capos.mjs", "route", goal, ...roots], osBody, `os route ${goal}`);
 }
+runCapabilityGraph(osBody, roots);
 
 run("node", ["doctor-workspace.mjs"], workspaceRoot, "workspace doctor");
 run("node", ["e2e-workspace.mjs"], workspaceRoot, "workspace e2e");
@@ -41,4 +42,24 @@ function run(command, args, cwd, label) {
 
   const summary = (result.stdout || result.stderr).trim().split("\n").filter(Boolean).at(-1);
   console.log(`[ok] ${label}${summary ? `: ${summary}` : ""}`);
+}
+
+function runCapabilityGraph(cwd, roots) {
+  const result = spawnSync("node", ["bin/capos.mjs", "capability-graph", ...roots, "--json"], {
+    cwd,
+    encoding: "utf8",
+    stdio: "pipe",
+  });
+
+  if (result.status !== 0) {
+    process.stdout.write(result.stdout);
+    process.stderr.write(result.stderr);
+    throw new Error("os capability graph failed");
+  }
+
+  const graph = JSON.parse(result.stdout);
+  if (graph.gaps.length > 0) {
+    throw new Error(`os capability graph has ${graph.gaps.length} gaps`);
+  }
+  console.log(`[ok] os capability graph: ${graph.summary.capabilities} capabilities, ${graph.summary.invocations} invocations, no gaps`);
 }

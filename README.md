@@ -33,8 +33,8 @@ node verify-workspace.mjs
 
 That command verifies every body, scans the workspace with Capsule Directory,
 checks the OS routes for `bootstrap`, `fleet-update`, and `verify`, runs the
-workspace doctor, and completes a temporary generate/discover/route/update
-preflight E2E proof.
+OS capability graph with no declaration gaps, runs the workspace doctor, and
+completes a temporary generate/discover/route/update apply/reobserve E2E proof.
 
 ## Doctor
 
@@ -45,7 +45,7 @@ node doctor-workspace.mjs
 ```
 
 It checks child repo cleanliness, lock drift, Base adoption currency, Directory
-scan health, and the main OS routes.
+scan health, the main OS routes, and the cross-projection capability graph.
 
 Base adoption expectations are declared per projection in
 `capsule-workspace.json` as `adoptionPolicy: none | optional | required`.
