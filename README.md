@@ -47,6 +47,11 @@ node doctor-workspace.mjs
 It checks child repo cleanliness, lock drift, Base adoption currency, Directory
 scan health, and the main OS routes.
 
+Base adoption expectations are declared per projection in
+`capsule-workspace.json` as `adoptionPolicy: none | optional | required`.
+The current workspace treats Base and Generator as non-adopters, and requires
+current Base adoption for Directory, Updater, and OS.
+
 ## Lock
 
 `capsule-workspace.lock.json` records the expected commit for each child

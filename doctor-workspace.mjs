@@ -29,12 +29,23 @@ for (const projection of workspace.projections) {
   console.log(`- ${projection.role}: ${clean}, ${locked}, ${head.slice(0, 7)}`);
 }
 
-for (const projection of workspace.projections.filter((entry) => entry.path !== "Capsule Base")) {
+for (const projection of workspace.projections) {
+  const adoptionPolicy = projection.adoptionPolicy ?? "optional";
+  if (!["none", "optional", "required"].includes(adoptionPolicy)) {
+    hasAttention = true;
+    console.log(`- adoption ${projection.role}: invalid policy ${adoptionPolicy}`);
+    continue;
+  }
+  if (adoptionPolicy === "none") {
+    console.log(`- adoption ${projection.role}: not applicable`);
+    continue;
+  }
+
   const targetRoot = path.join(workspaceRoot, projection.path);
   const report = run("node", ["verify/adoption.mjs", targetRoot, "--require-current"], baseBody);
   if (report.status === 0) {
     console.log(`- adoption ${projection.role}: current`);
-  } else if (projection.path === "Capsule Generator") {
+  } else if (adoptionPolicy === "optional") {
     console.log(`- adoption ${projection.role}: none declared`);
   } else {
     hasAttention = true;
