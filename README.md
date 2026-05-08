@@ -57,3 +57,23 @@ current Base adoption for Directory, Updater, and OS.
 `capsule-workspace.lock.json` records the expected commit for each child
 projection. Update it whenever the workspace intentionally moves to new child
 repo commits.
+
+## Bootstrap
+
+Recreate the child projection checkouts from the lock:
+
+```sh
+node scripts/bootstrap-workspace.mjs
+```
+
+The script clones missing child repos, fetches existing child repos, and checks
+out each locked commit. Existing child repos must be clean unless
+`--allow-dirty` is passed.
+
+## Update Lock
+
+After intentionally moving child repos, refresh the lock from local HEADs:
+
+```sh
+node scripts/update-lock.mjs
+```
