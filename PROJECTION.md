@@ -70,9 +70,10 @@ whose members participate as the current body. The root is orientation and
 boundary, not production root.
 
 Projection-specific operational support belongs under `projection-support/`.
-Manifests, locks, bootstrap or update scripts, doctors, workspace verifiers,
-E2E proofs, generated support artifacts, and similar finite operational files
-must not accumulate as ad hoc root entries. A fleet manifest may live under
+The directory and its README marker are standard projection shape. Manifests,
+locks, bootstrap or update scripts, doctors, workspace verifiers, E2E proofs,
+generated support artifacts, and similar finite operational files must not
+accumulate as ad hoc root entries. A fleet manifest may live under
 `projection-support/`; its declared members may remain visible root entries.
 `projection-support/` is support, not origin material, projection validity,
 body implementation, or a new center.

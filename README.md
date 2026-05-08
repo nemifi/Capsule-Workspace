@@ -42,6 +42,7 @@ projection core
 
 projection support
   projection-support/
+    README.md
     capsule-workspace.json
     capsule-workspace.lock.json
     doctor-workspace.mjs

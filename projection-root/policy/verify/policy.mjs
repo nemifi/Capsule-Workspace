@@ -110,7 +110,9 @@ const REQUIRED_POLICY_PATHS = [
   "AGENTS.md",
   "PROJECTION.md",
   "README.md",
-  ".gitignore"
+  ".gitignore",
+  "projection-support",
+  "projection-support/README.md"
 ];
 const FORBIDDEN_POLICY_PATHS = [
   "ARCHITECTURE.md",
