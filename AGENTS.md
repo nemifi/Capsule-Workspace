@@ -51,17 +51,20 @@ If local discovery cannot resolve a real blocker, stop and name it precisely.
   `projection-support/`.
 - In a fleet projection, the current body area is the set of fleet members named
   by the body-ref manifest, plus `projection-support/`.
-- In Capsule Base only, explicit system-layer authoring may also edit the
-  seed-owned paths declared by `projection-root/policy/seed-manifest.json`.
-  This is the Base release authoring window, not a general root-surgery escape.
+- Root mutation outside the default mutable area must be covered by a
+  `PROJECTION_ROOT_OPERATION` artifact, or by explicit root surgery.
+- Capsule Base seed authoring requires the `base-seed-authoring` operation:
+  target root and actor root must both be Capsule Base, and the write set must
+  stay inside the seed-owned paths declared by
+  `projection-root/policy/seed-manifest.json`.
 - Treat `AGENTS.md`, `PROJECTION.md`, `README.md`, and `projection-root/` as
-  sealed root material during ordinary work, except for the Capsule Base
-  seed-owned authoring window.
+  sealed root material during ordinary work unless an operation artifact covers
+  the exact write set.
 - Editing core, origin, nucleus, body-ref,
   `projection-root/policy/origin-witness/`, `projection-support/`,
   projection-owned root orientation or root documents, or seed-owned paths
-  outside the Base authoring window requires an explicit root surgery or body
-  replacement request.
+  outside a valid Base authoring operation requires an explicit root surgery or
+  body replacement request.
 
 ## Workflow
 
@@ -105,12 +108,12 @@ wording of the rest of this file.
 
 ```txt
 id | obligation | scope
-agents:base-authoring-seed-window | Capsule Base may author only seed-owned system-layer paths declared by the seed manifest without opening projection-owned root material. | agents,projection-policy,root-docs
+agents:base-authoring-seed-window | Capsule Base may author only seed-owned system-layer paths declared by the seed manifest through a base-seed-authoring operation artifact without opening projection-owned root material. | agents,projection-policy,root-docs
 agents:body-archive-background | Body archive docs remain background and history, not active truth. | agents,body
 agents:body-rules-delegated | Body-specific agent rules are delegated through the current body authority chain. | agents,body
 agents:branch-explicit | Branch creation or switching requires an explicit user request, with codex prefix only when an unnamed new branch is requested. | agents,repository
 agents:commit-scoped-current-branch | Completed scoped assistant changes are committed and pushed to the current branch without branch switching. | agents,repository
-agents:default-mutable-area | Ordinary implementation, documentation, tooling, and proof work stays within the current body or projection-support; root documents and projection-root changes require explicit root surgery or body replacement unless they are Capsule Base seed-owned authoring paths. | agents,repository,root-docs,body,projection-support
+agents:default-mutable-area | Ordinary implementation, documentation, tooling, and proof work stays within the current body or projection-support; root documents and projection-root changes require an operation artifact, explicit root surgery, or body replacement. | agents,repository,root-docs,body,projection-support
 agents:origin-protected | Active origin, nucleus, policy origin witness, and nonshrinking nucleus length stay protected unless explicitly requested. | agents,projection-core,projection-policy
 agents:projection-support-boundary | Projection-specific operational support stays under projection-support rather than accumulating as ad hoc root files. | agents,projection-support,repository
 agents:root-body-boundary | Root ownership and body implementation ownership remain separated. | agents,projection-core,body

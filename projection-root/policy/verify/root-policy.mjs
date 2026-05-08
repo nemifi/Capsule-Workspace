@@ -11,6 +11,7 @@ const REQUIRED_POLICY_SECTIONS = [
   "Current Layout",
   "Policy Role",
   "Default Mutable Area",
+  "Root Operations",
   "Seed Boundary",
   "Origin Witness",
   "Verification",
@@ -26,6 +27,7 @@ const REQUIRED_POLICY_CONTRACTS = [
   "policy:origin-change-different-claim",
   "policy:projection-local",
   "policy:projection-support-boundary",
+  "policy:root-operation-artifacts",
   "policy:seed-boundary-manifest",
   "policy:verification-covers-witness-records",
   "policy:witness-not-hardcoded"
@@ -33,7 +35,7 @@ const REQUIRED_POLICY_CONTRACTS = [
 const REQUIRED_POLICY_OBLIGATION_TERMS = {
   "policy:base-authoring-seed-window": [
     "Capsule Base",
-    "seed-owned system-layer paths",
+    "base-seed-authoring operation artifact",
     "projection-owned root material"
   ],
   "policy:body-ref-root-placement": [
@@ -45,8 +47,8 @@ const REQUIRED_POLICY_OBLIGATION_TERMS = {
     "Normal policy verification rejects",
     "current body",
     "projection-support",
-    "explicit root surgery",
-    "Capsule Base seed-owned authoring"
+    "operation artifact",
+    "explicit root surgery"
   ],
   "policy:kit-protected-root-layer": [
     "projection-root/kit",
@@ -62,6 +64,12 @@ const REQUIRED_POLICY_OBLIGATION_TERMS = {
     "projection-support",
     "ad hoc root support files",
     "root-level fleet manifests"
+  ],
+  "policy:root-operation-artifacts": [
+    "scoped root operation artifacts",
+    "target identity",
+    "write set",
+    "forbidden set"
   ],
   "policy:seed-boundary-manifest": [
     "canonical seed boundary manifest",

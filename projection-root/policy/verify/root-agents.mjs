@@ -34,14 +34,15 @@ const REQUIRED_ROOT_AGENT_OBLIGATION_TERMS = {
   "agents:base-authoring-seed-window": [
     "Capsule Base",
     "seed-owned system-layer paths",
+    "base-seed-authoring operation artifact",
     "projection-owned root material"
   ],
   "agents:default-mutable-area": [
     "Ordinary implementation",
     "current body",
     "projection-support",
-    "explicit root surgery",
-    "Capsule Base seed-owned authoring paths"
+    "operation artifact",
+    "explicit root surgery"
   ],
   "agents:origin-protected": ["Active origin", "nucleus", "protected"],
   "agents:projection-support-boundary": [

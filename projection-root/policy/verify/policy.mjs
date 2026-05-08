@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, realpath, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import {
@@ -55,10 +55,25 @@ const POLICY_ORIGIN_PROOF_NUCLEUS = "policyOriginProofNucleus0000000000000000000
 const TAMPERED_POLICY_ORIGIN_COMMITMENT =
   "sha256:0000000000000000000000000000000000000000000000000000000000000000";
 const ROOT_SURGERY_ENV = "PROJECTION_ROOT_SURGERY";
+const ROOT_OPERATION_ENV = "PROJECTION_ROOT_OPERATION";
+const ROOT_OPERATION_KIND = "projection-root/operation";
+const ROOT_OPERATION_VERSION = 1;
+const ROOT_OPERATION_KINDS = new Set([
+  "base-adoption-apply",
+  "base-seed-authoring",
+  "base-seed-proposal",
+  "consumer-root-surgery"
+]);
 const ORIGIN_MATERIAL_PATHS = [
   "projection-root/core/atom",
   "projection-root/core/molecule",
   "projection-root/policy/origin-witness"
+];
+const PROJECTION_OWNED_ROOTS = [
+  "README.md",
+  "projection-root/core",
+  "projection-root/policy/origin-witness",
+  PROJECTION_SUPPORT_ROOT
 ];
 const REQUIRED_PROTECTED_KIT_PATHS = [
   "projection-root/kit",
@@ -184,13 +199,14 @@ export async function checkProjectionPolicy(root) {
 
   await assertPolicyBodyRef(root, core.bodyRef);
   const ignoredRootEntries = await bodyRefIgnoredRootEntries(root, core.bodyRef);
+  const rootOperation = await readRootOperation(root);
   await checkPolicyBodyRefRejectsNestedPath(root, core);
   await checkPolicyBodyRefRejectsRootFleetManifest(root, core);
   await checkPolicyBodyRefRejectsFleetOwnedRootSupport(root, core);
   await checkProjectionFramework(root);
   await verifyPolicyOrigin(root);
   checkOriginMaterialDiffGuard(root);
-  await checkDefaultMutableAreaDiffGuard(root, ignoredRootEntries);
+  await checkDefaultMutableAreaDiffGuard(root, core, ignoredRootEntries, rootOperation);
   await checkOriginWitnessRejectsTamperedData(root, core);
   await checkOriginWitnessRejectsChangedOrigin(root, core);
 
@@ -315,7 +331,7 @@ function checkOriginMaterialDiffGuard(root) {
   }
 }
 
-async function checkDefaultMutableAreaDiffGuard(root, bodyRootEntries) {
+async function checkDefaultMutableAreaDiffGuard(root, core, bodyRootEntries, rootOperation) {
   if (process.env[ROOT_SURGERY_ENV] === "1") {
     return;
   }
@@ -324,29 +340,30 @@ async function checkDefaultMutableAreaDiffGuard(root, bodyRootEntries) {
     return;
   }
 
-  const allowedRoots = defaultMutableRoots(
-    bodyRootEntries,
-    await baseAuthoringSeedRoots(root, bodyRootEntries)
-  );
+  const allowedRoots = defaultMutableRoots(bodyRootEntries);
   const changed = gitChangedPaths(root);
   const protectedChanges = changed.filter((changedPath) => !isInsideAnyRoot(changedPath, allowedRoots));
 
+  if (rootOperation) {
+    await verifyRootOperationAllowsChanges(root, core, bodyRootEntries, rootOperation, changed, protectedChanges);
+    return;
+  }
+
   if (protectedChanges.length > 0) {
     throw new Error(
-      `protected root material changed during ordinary verification: ${protectedChanges.join(", ")}. Ordinary work must stay in the current body, projection-support, or Capsule Base seed-owned authoring paths. Set ${ROOT_SURGERY_ENV}=1 only for explicit root surgery or body replacement.`
+      `protected root material changed during ordinary verification: ${protectedChanges.join(", ")}. Ordinary work must stay in the current body or projection-support, or be covered by a ${ROOT_OPERATION_ENV} artifact. Set ${ROOT_SURGERY_ENV}=1 only for explicit root surgery or body replacement.`
     );
   }
 }
 
 function checkDefaultMutableAreaGuardProofs() {
   const allowed = defaultMutableRoots(["body"]);
-  const baseAllowed = defaultMutableRoots(["capsule-base-body"], [
+  const baseOperationAllowed = defaultMutableRoots(["capsule-base-body"], [
     "AGENTS.md",
     "PROJECTION.md",
     "projection-root/framework",
     "projection-root/kit",
     "projection-root/policy/ARCHITECTURE.md",
-    "projection-root/policy/seed-manifest.json",
     "projection-root/policy/verify"
   ]);
 
@@ -365,9 +382,22 @@ function checkDefaultMutableAreaGuardProofs() {
       "AGENTS.md",
       "projection-root/framework/ARCHITECTURE.md",
       "projection-root/policy/verify/policy.mjs"
-    ], baseAllowed),
+    ], allowed),
+    [
+      "AGENTS.md",
+      "projection-root/framework/ARCHITECTURE.md",
+      "projection-root/policy/verify/policy.mjs"
+    ],
+    "default mutable area proof requires an operation for Capsule Base seed authoring"
+  );
+  assertJsonList(
+    pathsOutsideDefaultMutableArea([
+      "AGENTS.md",
+      "projection-root/framework/ARCHITECTURE.md",
+      "projection-root/policy/verify/policy.mjs"
+    ], baseOperationAllowed),
     [],
-    "default mutable area proof allows Capsule Base seed authoring"
+    "default mutable area proof allows operation-covered Capsule Base seed authoring"
   );
   assertJsonList(
     pathsOutsideDefaultMutableArea([
@@ -375,7 +405,7 @@ function checkDefaultMutableAreaGuardProofs() {
       "projection-root/core/body-ref/ref",
       "projection-root/policy/origin-witness/ref",
       "projection-support/doctor.mjs"
-    ], baseAllowed),
+    ], baseOperationAllowed),
     [
       "README.md",
       "projection-root/core/body-ref/ref",
@@ -449,18 +479,214 @@ function isInsideAnyRoot(relativePath, roots) {
   return roots.some((rootEntry) => relativePath === rootEntry || relativePath.startsWith(`${rootEntry}/`));
 }
 
-async function baseAuthoringSeedRoots(root, bodyRootEntries) {
-  if (!(await hasCurrentCapsuleBaseBody(root, bodyRootEntries))) {
-    return [];
+async function readSeedBoundaryManifestValue(root) {
+  const label = "projection-root/policy/seed-manifest.json";
+  const text = await readFile(path.join(root, label), "utf8");
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    throw new Error(label + " must be valid JSON: " + error.message);
   }
-  const manifest = await readSeedBoundaryManifestValue(root);
-  if (!Array.isArray(manifest.seedOwnedPaths)) {
-    throw new Error("projection-root/policy/seed-manifest.json seedOwnedPaths must be an array");
-  }
-  return manifest.seedOwnedPaths;
 }
 
-async function hasCurrentCapsuleBaseBody(root, bodyRootEntries) {
+async function readRootOperation(root) {
+  const operationPath = process.env[ROOT_OPERATION_ENV];
+  if (!operationPath) {
+    return null;
+  }
+
+  const absolutePath = path.isAbsolute(operationPath)
+    ? operationPath
+    : path.join(root, operationPath);
+  const label = ROOT_OPERATION_ENV;
+  const text = await readFile(absolutePath, "utf8");
+  let operation;
+  try {
+    operation = JSON.parse(text);
+  } catch (error) {
+    throw new Error(`${label} artifact must be valid JSON: ${error.message}`);
+  }
+  if (text !== `${stableStringify(operation)}\n`) {
+    throw new Error(`${label} artifact must be canonical JSON`);
+  }
+  verifyRootOperationShape(operation, label);
+  if ((await canonicalRootPath(operation.targetRoot)) !== (await canonicalRootPath(root))) {
+    throw new Error(`${label} targetRoot must match the verified projection root`);
+  }
+  return operation;
+}
+
+async function canonicalRootPath(value) {
+  const absolute = path.resolve(value);
+  try {
+    return await realpath(absolute);
+  } catch {
+    return absolute;
+  }
+}
+
+function verifyRootOperationShape(operation, label) {
+  assertObject(operation, label);
+  assertJsonList(
+    Object.keys(operation).sort(),
+    [
+      "actorRoot",
+      "forbiddenSet",
+      "kind",
+      "operation",
+      "preconditions",
+      "targetRole",
+      "targetRoot",
+      "version",
+      "writeSet"
+    ],
+    `${label} keys`
+  );
+  assertEqual(operation.kind, ROOT_OPERATION_KIND, `${label}.kind`);
+  assertEqual(operation.version, ROOT_OPERATION_VERSION, `${label}.version`);
+  assertTrimmedString(operation.operation, `${label}.operation`);
+  if (!ROOT_OPERATION_KINDS.has(operation.operation)) {
+    throw new Error(`${label}.operation must be a known root operation`);
+  }
+  assertTrimmedString(operation.actorRoot, `${label}.actorRoot`);
+  assertTrimmedString(operation.targetRoot, `${label}.targetRoot`);
+  assertTrimmedString(operation.targetRole, `${label}.targetRole`);
+  assertObject(operation.preconditions, `${label}.preconditions`);
+  assertPortablePathList(operation.writeSet, `${label}.writeSet`);
+  assertPortablePathList(operation.forbiddenSet, `${label}.forbiddenSet`);
+}
+
+async function verifyRootOperationAllowsChanges(root, core, bodyRootEntries, operation, changed, protectedChanges) {
+  const forbiddenChanges = changed.filter((changedPath) => isInsideAnyRoot(changedPath, operation.forbiddenSet));
+  if (forbiddenChanges.length > 0) {
+    throw new Error(`root operation ${operation.operation} touches forbidden paths: ${forbiddenChanges.join(", ")}`);
+  }
+
+  const uncoveredChanges = protectedChanges.filter((changedPath) => !isInsideAnyRoot(changedPath, operation.writeSet));
+  if (uncoveredChanges.length > 0) {
+    throw new Error(`root operation ${operation.operation} does not cover protected changes: ${uncoveredChanges.join(", ")}`);
+  }
+
+  if (operation.operation === "base-adoption-apply") {
+    await verifyBaseAdoptionApplyOperation(root, core, operation);
+    return;
+  }
+  if (operation.operation === "base-seed-authoring") {
+    await verifyBaseSeedAuthoringOperation(root, bodyRootEntries, operation);
+    return;
+  }
+  if (operation.operation === "base-seed-proposal") {
+    verifyBaseSeedProposalOperation(operation);
+    return;
+  }
+  if (operation.operation === "consumer-root-surgery") {
+    await verifyConsumerRootSurgeryOperation(root, core, operation);
+    return;
+  }
+  throw new Error(`unsupported root operation: ${operation.operation}`);
+}
+
+async function verifyBaseAdoptionApplyOperation(root, core, operation) {
+  if (core.bodyRef.kind === "fleet") {
+    await verifyFleetBaseAdoptionApplyOperation(root, core, operation);
+    return;
+  }
+  if (core.bodyRef.kind !== "single") {
+    throw new Error("base-adoption-apply requires a single or fleet target body");
+  }
+  await verifySingleBaseAdoptionApplyOperation(root, core, operation);
+}
+
+async function verifySingleBaseAdoptionApplyOperation(root, core, operation) {
+  const bodyPath = core.bodyRef.ref;
+  const witnessPath = `${bodyPath}/adoptions/capsule-base/current.json`;
+  const witness = await readOptionalJson(root, witnessPath);
+  assertObject(witness, "capsule base adoption witness");
+  assertEqual(witness.kind, "capsule-base/adoption", "capsule base adoption witness.kind");
+  const role = await readOptionalSingleBodyRole(root, bodyPath) ?? witness.consumer?.kind;
+  assertTrimmedString(role, "base-adoption-apply target role");
+  if (role === "capsule-base") {
+    throw new Error("base-adoption-apply must not target Capsule Base");
+  }
+  assertEqual(operation.targetRole, role, `${ROOT_OPERATION_ENV}.targetRole`);
+  assertEqual(operation.preconditions.bodyPath, bodyPath, `${ROOT_OPERATION_ENV}.preconditions.bodyPath`);
+  assertEqual(operation.preconditions.witnessPath, witnessPath, `${ROOT_OPERATION_ENV}.preconditions.witnessPath`);
+  assertEqual(operation.preconditions.baseManifestCommitment, witness.base?.manifestCommitment, `${ROOT_OPERATION_ENV}.preconditions.baseManifestCommitment`);
+  const allowedWriteSet = [...witness.scope.adoptedSystemPaths, witnessPath].sort();
+  const outsideAdoption = operation.writeSet.filter((changedPath) => !isInsideAnyRoot(changedPath, allowedWriteSet));
+  if (outsideAdoption.length > 0) {
+    throw new Error(`base-adoption-apply writeSet must stay inside adopted system paths and witness: ${outsideAdoption.join(", ")}`);
+  }
+  assertNoProjectionOwnedWrites(operation.writeSet, "base-adoption-apply");
+}
+
+async function verifyFleetBaseAdoptionApplyOperation(root, core, operation) {
+  const fleetManifest = await readOptionalJson(root, core.bodyRef.ref);
+  assertObject(fleetManifest, "fleet body manifest");
+  assertEqual(fleetManifest.body?.kind, "fleet", "fleet body manifest body.kind");
+  assertTrimmedString(fleetManifest.kind, "fleet body manifest.kind");
+  const witnessPath = `${PROJECTION_SUPPORT_ROOT}/adoptions/capsule-base/workspace.json`;
+  const witness = await readOptionalJson(root, witnessPath);
+  assertObject(witness, "capsule base fleet adoption witness");
+  assertEqual(witness.kind, "capsule-base/adoption", "capsule base fleet adoption witness.kind");
+  assertEqual(operation.targetRole, fleetManifest.kind, `${ROOT_OPERATION_ENV}.targetRole`);
+  assertEqual(operation.preconditions.fleetManifestPath, core.bodyRef.ref, `${ROOT_OPERATION_ENV}.preconditions.fleetManifestPath`);
+  assertEqual(operation.preconditions.witnessPath, witnessPath, `${ROOT_OPERATION_ENV}.preconditions.witnessPath`);
+  assertEqual(operation.preconditions.baseManifestCommitment, witness.base?.manifestCommitment, `${ROOT_OPERATION_ENV}.preconditions.baseManifestCommitment`);
+  const allowedWriteSet = [...witness.scope.adoptedSystemPaths, witnessPath].sort();
+  const outsideAdoption = operation.writeSet.filter((changedPath) => !isInsideAnyRoot(changedPath, allowedWriteSet));
+  if (outsideAdoption.length > 0) {
+    throw new Error(`fleet base-adoption-apply writeSet must stay inside adopted system paths and workspace witness: ${outsideAdoption.join(", ")}`);
+  }
+  assertNoProjectionOwnedWrites(operation.writeSet, "fleet base-adoption-apply", [witnessPath]);
+}
+
+async function verifyBaseSeedAuthoringOperation(root, bodyRootEntries, operation) {
+  if ((await canonicalRootPath(operation.actorRoot)) !== (await canonicalRootPath(operation.targetRoot))) {
+    throw new Error("base-seed-authoring requires actorRoot to equal targetRoot");
+  }
+  const baseBodyEntry = await findCapsuleBaseBodyEntry(root, bodyRootEntries);
+  if (!baseBodyEntry) {
+    throw new Error("base-seed-authoring requires the current body role to be capsule-base");
+  }
+  assertEqual(operation.targetRole, "capsule-base", `${ROOT_OPERATION_ENV}.targetRole`);
+  const seedManifest = await readSeedBoundaryManifestValue(root);
+  assertJsonList(operation.writeSet, uniqueRootEntries(operation.writeSet).sort(), `${ROOT_OPERATION_ENV}.writeSet`);
+  const outsideSeed = operation.writeSet.filter((changedPath) => !isInsideAnyRoot(changedPath, seedManifest.seedOwnedPaths));
+  if (outsideSeed.length > 0) {
+    throw new Error(`base-seed-authoring writeSet must stay inside seed-owned paths: ${outsideSeed.join(", ")}`);
+  }
+  assertNoProjectionOwnedWrites(operation.writeSet, "base-seed-authoring");
+}
+
+function verifyBaseSeedProposalOperation(operation) {
+  if (operation.writeSet.length === 0) {
+    throw new Error("base-seed-proposal writeSet must not be empty");
+  }
+  const outsideProposal = operation.writeSet.filter((changedPath) => !isInsideAnyRoot(changedPath, [`${PROJECTION_SUPPORT_ROOT}/proposals/base-seed`]));
+  if (outsideProposal.length > 0) {
+    throw new Error(`base-seed-proposal writeSet must stay under projection-support/proposals/base-seed: ${outsideProposal.join(", ")}`);
+  }
+}
+
+async function verifyConsumerRootSurgeryOperation(root, core, operation) {
+  if (core.bodyRef.kind === "single") {
+    const role = await readSingleBodyRole(root, core.bodyRef.ref);
+    if (role === "capsule-base") {
+      throw new Error("consumer-root-surgery must not target Capsule Base");
+    }
+    assertEqual(operation.targetRole, role, `${ROOT_OPERATION_ENV}.targetRole`);
+  } else {
+    const bodyRef = await readOptionalJson(root, core.bodyRef.ref);
+    assertEqual(operation.targetRole, bodyRef?.kind, `${ROOT_OPERATION_ENV}.targetRole`);
+  }
+  const originWrites = operation.writeSet.filter((changedPath) => isInsideAnyRoot(changedPath, ORIGIN_MATERIAL_PATHS));
+  if (originWrites.length > 0) {
+    throw new Error(`consumer-root-surgery writeSet must not include active origin material: ${originWrites.join(", ")}`);
+  }
+}
+
+async function findCapsuleBaseBodyEntry(root, bodyRootEntries) {
   for (const bodyRootEntry of bodyRootEntries) {
     const capability = await readOptionalJson(root, `${bodyRootEntry}/capabilities/current.json`);
     if (
@@ -469,20 +695,45 @@ async function hasCurrentCapsuleBaseBody(root, bodyRootEntries) {
       capability?.body?.role === "capsule-base"
     ) {
       const release = await readOptionalJson(root, `${bodyRootEntry}/releases/current.json`);
-      return release?.kind === "capsule-base/release" &&
-        release?.bundleContract === "capsule-base:projection-system-bundle-v1";
+      if (
+        release?.kind === "capsule-base/release" &&
+        release?.bundleContract === "capsule-base:projection-system-bundle-v1"
+      ) {
+        return bodyRootEntry;
+      }
     }
   }
-  return false;
+  return null;
 }
 
-async function readSeedBoundaryManifestValue(root) {
-  const label = "projection-root/policy/seed-manifest.json";
-  const text = await readFile(path.join(root, label), "utf8");
-  try {
-    return JSON.parse(text);
-  } catch (error) {
-    throw new Error(label + " must be valid JSON: " + error.message);
+async function readSingleBodyRole(root, bodyPath) {
+  const capability = await readOptionalJson(root, `${bodyPath}/capabilities/current.json`);
+  assertObject(capability, "capability manifest");
+  assertEqual(capability.kind, "capsule/capability-manifest", "capability manifest.kind");
+  assertEqual(capability.body?.path, bodyPath, "capability manifest body.path");
+  assertTrimmedString(capability.body?.role, "capability manifest body.role");
+  return capability.body.role;
+}
+
+async function readOptionalSingleBodyRole(root, bodyPath) {
+  const capability = await readOptionalJson(root, `${bodyPath}/capabilities/current.json`);
+  if (capability === null) {
+    return null;
+  }
+  assertObject(capability, "capability manifest");
+  assertEqual(capability.kind, "capsule/capability-manifest", "capability manifest.kind");
+  assertEqual(capability.body?.path, bodyPath, "capability manifest body.path");
+  assertTrimmedString(capability.body?.role, "capability manifest body.role");
+  return capability.body.role;
+}
+
+function assertNoProjectionOwnedWrites(writeSet, label, allowedProjectionOwned = []) {
+  const projectionOwned = writeSet.filter((changedPath) =>
+    isInsideAnyRoot(changedPath, PROJECTION_OWNED_ROOTS) &&
+    !isInsideAnyRoot(changedPath, allowedProjectionOwned)
+  );
+  if (projectionOwned.length > 0) {
+    throw new Error(`${label} writeSet must not include projection-owned paths: ${projectionOwned.join(", ")}`);
   }
 }
 
@@ -945,5 +1196,34 @@ function assertJsonList(actual, expected, label) {
 function assertIncludes(values, expected, label) {
   if (!values.includes(expected)) {
     throw new Error(`${label}: expected to include ${JSON.stringify(expected)}`);
+  }
+}
+
+function assertTrimmedString(value, label) {
+  if (typeof value !== "string" || value.trim() !== value || value.length === 0) {
+    throw new Error(`${label} must be one trimmed string`);
+  }
+}
+
+function assertPortablePathList(values, label) {
+  if (!Array.isArray(values)) {
+    throw new Error(`${label} must be an array`);
+  }
+  for (const [index, value] of values.entries()) {
+    assertPortablePath(value, `${label}[${index}]`);
+  }
+  assertJsonList(values, uniqueRootEntries(values).sort(), label);
+}
+
+function assertPortablePath(value, label) {
+  if (
+    typeof value !== "string" ||
+    value.length === 0 ||
+    path.isAbsolute(value) ||
+    value.includes("\\") ||
+    /\s/.test(value) ||
+    value.split("/").some((segment) => segment === "" || segment === "." || segment === "..")
+  ) {
+    throw new Error(`${label} must be a portable relative path`);
   }
 }
