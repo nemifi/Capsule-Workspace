@@ -2,7 +2,7 @@
   "kind": "capsule/workspace-lock",
   "projections": [
     {
-      "commit": "64a8aba7b1f0816f097836043ee0c6b20d74da01",
+      "commit": "8b8ce4a527dabbd6c68c458662cb480928808cc1",
       "path": "Capsule Base",
       "remote": "https://github.com/nemifi/capsule-base.git",
       "role": "capsule-base"
@@ -26,7 +26,7 @@
       "role": "capsule-updater"
     },
     {
-      "commit": "166ba8f4cbf2c7d240b01b21150221733168d056",
+      "commit": "89ada5f8f6066ee9df5459017fce1baa0b391a70",
       "path": "Capsule OS",
       "remote": "https://github.com/nemifi/Capsule-OS.git",
       "role": "capsule-os"

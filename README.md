@@ -43,6 +43,7 @@ projection core
 projection support
   projection-support/
     README.md
+    adoptions/
     capsule-workspace.json
     capsule-workspace.lock.json
     doctor-workspace.mjs
@@ -82,6 +83,9 @@ policy, and root placement rules.
 workspace manifest, workspace lock, bootstrap/update scripts, workspace doctor,
 workspace verifier, and E2E proof. It is not projection core, projection
 validity, body implementation, or a replacement for body-local meaning.
+The workspace root's Capsule Base adoption witness also lives under
+`projection-support/adoptions/`, because this fleet root has no single
+implementation body to own that witness.
 
 The fleet body owns the child projection checkouts. Body-local docs and
 verification stay inside the current body.
@@ -109,8 +113,10 @@ projection-root/kit/interop/manifest.json
 
 1. Read `PROJECTION.md` for placement law.
 2. Read `projection-support/capsule-workspace.json` for the current child projection body members.
-3. Read each child projection's body adoption records and meaning owners.
-4. Use the workspace doctor for a quick fleet health read.
+3. Read `projection-support/adoptions/capsule-base/workspace.json` for the
+   fleet root's Capsule Base adoption witness.
+4. Read each child projection's body adoption records and meaning owners.
+5. Use the workspace doctor for a quick fleet health read.
 
 ## Verification
 

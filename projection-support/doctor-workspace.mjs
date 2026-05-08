@@ -77,6 +77,14 @@ for (const projection of workspace.projections) {
   }
 }
 
+const workspaceAdoption = run("node", ["verify/adoption.mjs", workspaceRoot, "--require-current"], baseBody);
+if (workspaceAdoption.status === 0) {
+  console.log("- adoption workspace: current");
+} else {
+  hasAttention = true;
+  console.log("- adoption workspace: attention");
+}
+
 const scan = run("node", ["bin/capdir.mjs", "scan", workspaceRoot], directoryBody);
 if (scan.status === 0) {
   const summary = scan.stdout.trim().split("\n").filter(Boolean).at(-1);
