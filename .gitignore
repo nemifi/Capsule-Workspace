@@ -1,0 +1,10 @@
+Capsule Base/
+Capsule Generator/
+Capsule Directory/
+Capsule Updater/
+Capsule OS/
+
+.DS_Store
+*.log
+tmp/
+artifacts/

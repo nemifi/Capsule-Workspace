@@ -1,0 +1,54 @@
+# Capsule Workspace
+
+This folder is the integration workspace for the Capsule projections.
+
+## Projections
+
+```txt
+Capsule Base       shared projection system bundle and adoption proof
+Capsule Generator  projection capsule materializer
+Capsule Directory  read-only projection discovery and snapshot layer
+Capsule Updater    safe Capsule Base update planner and applier
+Capsule OS         operating layer for discovery, routing, invocation, and evidence
+```
+
+## Ideal Flow
+
+```txt
+Base publishes the shared system layer.
+Generator creates projection capsules from specs.
+Directory discovers readable projections and capabilities.
+OS resolves routes and coordinates bounded workflows.
+Updater plans and applies Base updates to adopting projections.
+OS and Directory observe the updated fleet again.
+```
+
+## Verify
+
+Run the workspace proof from this folder:
+
+```sh
+node verify-workspace.mjs
+```
+
+That command verifies every body, scans the workspace with Capsule Directory,
+checks the OS routes for `bootstrap`, `fleet-update`, and `verify`, runs the
+workspace doctor, and completes a temporary generate/discover/route/update
+preflight E2E proof.
+
+## Doctor
+
+Use the doctor when you want a quick health read without running every proof:
+
+```sh
+node doctor-workspace.mjs
+```
+
+It checks child repo cleanliness, lock drift, Base adoption currency, Directory
+scan health, and the main OS routes.
+
+## Lock
+
+`capsule-workspace.lock.json` records the expected commit for each child
+projection. Update it whenever the workspace intentionally moves to new child
+repo commits.
