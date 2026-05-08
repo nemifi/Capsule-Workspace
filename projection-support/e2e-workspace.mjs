@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
@@ -7,6 +7,8 @@ import { fileURLToPath } from "node:url";
 
 const supportRoot = path.dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = path.dirname(supportRoot);
+const workspace = JSON.parse(await readFile(path.join(supportRoot, "capsule-workspace.json"), "utf8"));
+const projectionByRole = new Map(workspace.projections.map((projection) => [projection.role, projection]));
 const tempRoot = await mkdtemp(path.join(os.tmpdir(), "capsule-workspace-e2e-"));
 const targetRoot = path.join(tempRoot, "Generated Projection");
 const specPath = path.join(tempRoot, "spec.json");
@@ -36,11 +38,11 @@ try {
     name: "Workspace E2E Projection"
   }, null, 2) + "\n", "utf8");
 
-  const baseRoot = path.join(workspaceRoot, "Capsule Base");
-  const generatorBody = path.join(workspaceRoot, "Capsule Generator", "capsule-generator-body");
-  const directoryBody = path.join(workspaceRoot, "Capsule Directory", "projection-body");
-  const updaterBody = path.join(workspaceRoot, "Capsule Updater", "capsule-updater-body");
-  const osBody = path.join(workspaceRoot, "Capsule OS", "capsule-os-body");
+  const baseRoot = projectionRoot("capsule-base");
+  const generatorBody = projectionBodyRoot("capsule-generator");
+  const directoryBody = projectionBodyRoot("capsule-directory");
+  const updaterBody = projectionBodyRoot("capsule-updater");
+  const osBody = projectionBodyRoot("capsule-os");
 
   step("generate projection", "node", ["bin/capgen.mjs", "create", specPath, "--out", targetRoot, "--base", baseRoot], generatorBody);
   step("verify generated projection", "node", ["bin/capgen.mjs", "verify", targetRoot], generatorBody);
@@ -70,4 +72,20 @@ function step(label, command, args, cwd) {
   }
   const summary = result.stdout.trim().split("\n").filter(Boolean).at(-1);
   console.log(`[ok] ${label}${summary ? `: ${summary}` : ""}`);
+}
+
+function projectionRoot(role) {
+  const projection = projectionByRole.get(role);
+  if (!projection) {
+    throw new Error(`workspace projection role not declared: ${role}`);
+  }
+  return path.join(workspaceRoot, projection.path);
+}
+
+function projectionBodyRoot(role) {
+  const projection = projectionByRole.get(role);
+  if (!projection) {
+    throw new Error(`workspace projection role not declared: ${role}`);
+  }
+  return path.join(workspaceRoot, projection.path, projection.verify);
 }

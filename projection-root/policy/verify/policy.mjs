@@ -190,7 +190,7 @@ export async function checkProjectionPolicy(root) {
   await checkProjectionFramework(root);
   await verifyPolicyOrigin(root);
   checkOriginMaterialDiffGuard(root);
-  checkDefaultMutableAreaDiffGuard(root, ignoredRootEntries);
+  await checkDefaultMutableAreaDiffGuard(root, ignoredRootEntries);
   await checkOriginWitnessRejectsTamperedData(root, core);
   await checkOriginWitnessRejectsChangedOrigin(root, core);
 
@@ -315,7 +315,7 @@ function checkOriginMaterialDiffGuard(root) {
   }
 }
 
-function checkDefaultMutableAreaDiffGuard(root, bodyRootEntries) {
+async function checkDefaultMutableAreaDiffGuard(root, bodyRootEntries) {
   if (process.env[ROOT_SURGERY_ENV] === "1") {
     return;
   }
@@ -324,19 +324,31 @@ function checkDefaultMutableAreaDiffGuard(root, bodyRootEntries) {
     return;
   }
 
-  const allowedRoots = defaultMutableRoots(bodyRootEntries);
+  const allowedRoots = defaultMutableRoots(
+    bodyRootEntries,
+    await baseAuthoringSeedRoots(root, bodyRootEntries)
+  );
   const changed = gitChangedPaths(root);
   const protectedChanges = changed.filter((changedPath) => !isInsideAnyRoot(changedPath, allowedRoots));
 
   if (protectedChanges.length > 0) {
     throw new Error(
-      `protected root material changed during ordinary verification: ${protectedChanges.join(", ")}. Ordinary work must stay in the current body or projection-support. Set ${ROOT_SURGERY_ENV}=1 only for explicit root surgery or body replacement.`
+      `protected root material changed during ordinary verification: ${protectedChanges.join(", ")}. Ordinary work must stay in the current body, projection-support, or Capsule Base seed-owned authoring paths. Set ${ROOT_SURGERY_ENV}=1 only for explicit root surgery or body replacement.`
     );
   }
 }
 
 function checkDefaultMutableAreaGuardProofs() {
   const allowed = defaultMutableRoots(["body"]);
+  const baseAllowed = defaultMutableRoots(["capsule-base-body"], [
+    "AGENTS.md",
+    "PROJECTION.md",
+    "projection-root/framework",
+    "projection-root/kit",
+    "projection-root/policy/ARCHITECTURE.md",
+    "projection-root/policy/seed-manifest.json",
+    "projection-root/policy/verify"
+  ]);
 
   assertJsonList(
     pathsOutsideDefaultMutableArea(["body/src/app.js", "projection-support/doctor.mjs"], allowed),
@@ -347,6 +359,29 @@ function checkDefaultMutableAreaGuardProofs() {
     pathsOutsideDefaultMutableArea(["AGENTS.md", "projection-root/policy/verify/policy.mjs"], allowed),
     ["AGENTS.md", "projection-root/policy/verify/policy.mjs"],
     "default mutable area proof rejects root material"
+  );
+  assertJsonList(
+    pathsOutsideDefaultMutableArea([
+      "AGENTS.md",
+      "projection-root/framework/ARCHITECTURE.md",
+      "projection-root/policy/verify/policy.mjs"
+    ], baseAllowed),
+    [],
+    "default mutable area proof allows Capsule Base seed authoring"
+  );
+  assertJsonList(
+    pathsOutsideDefaultMutableArea([
+      "README.md",
+      "projection-root/core/body-ref/ref",
+      "projection-root/policy/origin-witness/ref",
+      "projection-support/doctor.mjs"
+    ], baseAllowed),
+    [
+      "README.md",
+      "projection-root/core/body-ref/ref",
+      "projection-root/policy/origin-witness/ref"
+    ],
+    "default mutable area proof keeps Capsule Base projection-owned paths closed"
   );
 }
 
@@ -402,8 +437,8 @@ function parseGitStatusPaths(output) {
   return [...new Set(paths)].sort();
 }
 
-function defaultMutableRoots(bodyRootEntries) {
-  return [...bodyRootEntries, PROJECTION_SUPPORT_ROOT].sort();
+function defaultMutableRoots(bodyRootEntries, extraRoots = []) {
+  return uniqueRootEntries([...bodyRootEntries, PROJECTION_SUPPORT_ROOT, ...extraRoots]).sort();
 }
 
 function pathsOutsideDefaultMutableArea(paths, allowedRoots) {
@@ -412,6 +447,60 @@ function pathsOutsideDefaultMutableArea(paths, allowedRoots) {
 
 function isInsideAnyRoot(relativePath, roots) {
   return roots.some((rootEntry) => relativePath === rootEntry || relativePath.startsWith(`${rootEntry}/`));
+}
+
+async function baseAuthoringSeedRoots(root, bodyRootEntries) {
+  if (!(await hasCurrentCapsuleBaseBody(root, bodyRootEntries))) {
+    return [];
+  }
+  const manifest = await readSeedBoundaryManifestValue(root);
+  if (!Array.isArray(manifest.seedOwnedPaths)) {
+    throw new Error("projection-root/policy/seed-manifest.json seedOwnedPaths must be an array");
+  }
+  return manifest.seedOwnedPaths;
+}
+
+async function hasCurrentCapsuleBaseBody(root, bodyRootEntries) {
+  for (const bodyRootEntry of bodyRootEntries) {
+    const capability = await readOptionalJson(root, `${bodyRootEntry}/capabilities/current.json`);
+    if (
+      capability?.kind === "capsule/capability-manifest" &&
+      capability?.body?.path === bodyRootEntry &&
+      capability?.body?.role === "capsule-base"
+    ) {
+      const release = await readOptionalJson(root, `${bodyRootEntry}/releases/current.json`);
+      return release?.kind === "capsule-base/release" &&
+        release?.bundleContract === "capsule-base:projection-system-bundle-v1";
+    }
+  }
+  return false;
+}
+
+async function readSeedBoundaryManifestValue(root) {
+  const label = "projection-root/policy/seed-manifest.json";
+  const text = await readFile(path.join(root, label), "utf8");
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    throw new Error(label + " must be valid JSON: " + error.message);
+  }
+}
+
+async function readOptionalJson(root, relativePath) {
+  let text;
+  try {
+    text = await readFile(path.join(root, relativePath), "utf8");
+  } catch (error) {
+    if (error && error.code === "ENOENT") {
+      return null;
+    }
+    throw error;
+  }
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
 }
 
 async function checkOriginWitnessRejectsChangedOrigin(root, core) {

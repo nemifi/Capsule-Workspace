@@ -18,6 +18,7 @@ const REQUIRED_ROOT_AGENT_SECTIONS = [
 ];
 
 const REQUIRED_ROOT_AGENT_CONTRACTS = [
+  "agents:base-authoring-seed-window",
   "agents:body-archive-background",
   "agents:body-rules-delegated",
   "agents:branch-explicit",
@@ -30,11 +31,17 @@ const REQUIRED_ROOT_AGENT_CONTRACTS = [
   "agents:workflow-tools"
 ];
 const REQUIRED_ROOT_AGENT_OBLIGATION_TERMS = {
+  "agents:base-authoring-seed-window": [
+    "Capsule Base",
+    "seed-owned system-layer paths",
+    "projection-owned root material"
+  ],
   "agents:default-mutable-area": [
     "Ordinary implementation",
     "current body",
     "projection-support",
-    "explicit root surgery"
+    "explicit root surgery",
+    "Capsule Base seed-owned authoring paths"
   ],
   "agents:origin-protected": ["Active origin", "nucleus", "protected"],
   "agents:projection-support-boundary": [

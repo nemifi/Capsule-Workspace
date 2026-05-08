@@ -45,6 +45,14 @@ seed-owned system files. Set `PROJECTION_ROOT_SURGERY=1`, or pass
 `--root-surgery` to `projection-root/policy/verify/run.mjs`, only for an
 explicit root surgery or body replacement request.
 
+Capsule Base is the one projection that authors the reusable system layer. When
+the current body identifies itself as `capsule-base`, normal policy verification
+also allows changes to the seed-owned paths declared by
+`projection-root/policy/seed-manifest.json`. That Base authoring window is
+limited to the release bundle surface; it does not open
+`projection-root/core/`, `projection-root/policy/origin-witness/`,
+`projection-support/`, body material, or projection-owned root documents.
+
 ## Seed Boundary
 
 `projection-root/policy/seed-manifest.json` declares which root paths are seed-owned, which root paths are projection-owned, and which family-level seed docs are forbidden. Seed ownership means the file was materialized from the Capsule Base scaffold so the capsule can run independently after creation; it is not a runtime dependency on Capsule Base. Projection-owned paths remain local claim material, current root documentation, active body ref target material, and the `projection-support/` boundary.
@@ -95,9 +103,10 @@ the exact wording of the surrounding prose.
 
 ```txt
 id | obligation | scope
+policy:base-authoring-seed-window | Capsule Base policy verification permits normal diffs only in seed-owned system-layer paths when the current body is capsule-base, without opening projection-owned root material. | projection-policy,repository,root-docs
 policy:body-ref-root-placement | Policy rejects nested single body refs, reserved root entries, and invalid fleet body manifests so current body declarations cannot hide unrelated root shape. | projection-policy,projection-core,body
 policy:data-witness | The policy layout carries active origin witness data and root policy verification. | projection-policy
-policy:default-mutable-area-diff-guard | Normal policy verification rejects git diffs outside the current body or projection-support unless explicit root surgery or body replacement is requested. | projection-policy,repository,root-docs,body,projection-support
+policy:default-mutable-area-diff-guard | Normal policy verification rejects git diffs outside the current body or projection-support unless explicit root surgery, body replacement, or Capsule Base seed-owned authoring is requested. | projection-policy,repository,root-docs,body,projection-support
 policy:kit-protected-root-layer | This projection policy keeps projection-root/kit as a protected root layer while kit adoption remains optional and not projection validity. | projection-policy,projection-kit,body
 policy:origin-change-different-claim | Active origin changes remain different projection claims unless explicitly handled as root surgery. | projection-policy,projection-core
 policy:projection-local | Projection policy stays local to this projection and outside core, framework, kit, and body implementation. | projection-policy,projection-core,projection-framework,projection-kit,body

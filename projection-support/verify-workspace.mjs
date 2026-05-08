@@ -7,16 +7,17 @@ import { fileURLToPath } from "node:url";
 const supportRoot = path.dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = path.dirname(supportRoot);
 const workspace = JSON.parse(await readFile(path.join(supportRoot, "capsule-workspace.json"), "utf8"));
+const projectionByRole = new Map(workspace.projections.map((projection) => [projection.role, projection]));
 
 for (const projection of workspace.projections) {
   const bodyRoot = path.join(workspaceRoot, projection.path, projection.verify);
   run("npm", ["run", "verify"], bodyRoot, `${projection.role} body verify`);
 }
 
-const directoryBody = path.join(workspaceRoot, "Capsule Directory", "projection-body");
+const directoryBody = projectionBodyRoot("capsule-directory");
 run("node", ["bin/capdir.mjs", "scan", workspaceRoot], directoryBody, "directory scan");
 
-const osBody = path.join(workspaceRoot, "Capsule OS", "capsule-os-body");
+const osBody = projectionBodyRoot("capsule-os");
 const roots = workspace.projections.map((projection) => path.join(workspaceRoot, projection.path));
 for (const goal of ["bootstrap", "fleet-update", "verify"]) {
   run("node", ["bin/capos.mjs", "route", goal, ...roots], osBody, `os route ${goal}`);
@@ -43,6 +44,14 @@ function run(command, args, cwd, label) {
 
   const summary = (result.stdout || result.stderr).trim().split("\n").filter(Boolean).at(-1);
   console.log(`[ok] ${label}${summary ? `: ${summary}` : ""}`);
+}
+
+function projectionBodyRoot(role) {
+  const projection = projectionByRole.get(role);
+  if (!projection) {
+    throw new Error(`workspace projection role not declared: ${role}`);
+  }
+  return path.join(workspaceRoot, projection.path, projection.verify);
 }
 
 function runCapabilityGraph(cwd, roots) {

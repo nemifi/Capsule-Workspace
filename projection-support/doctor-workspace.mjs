@@ -17,10 +17,11 @@ const checkRemote = args.has("--remote");
 const workspace = await readSupportJson("capsule-workspace.json");
 const lock = await readSupportJson("capsule-workspace.lock.json");
 const lockByPath = new Map(lock.projections.map((projection) => [projection.path, projection]));
+const projectionByRole = new Map(workspace.projections.map((projection) => [projection.role, projection]));
 const roots = workspace.projections.map((projection) => path.join(workspaceRoot, projection.path));
-const baseBody = path.join(workspaceRoot, "Capsule Base", "capsule-base-body");
-const directoryBody = path.join(workspaceRoot, "Capsule Directory", "projection-body");
-const osBody = path.join(workspaceRoot, "Capsule OS", "capsule-os-body");
+const baseBody = projectionBodyRoot("capsule-base");
+const directoryBody = projectionBodyRoot("capsule-directory");
+const osBody = projectionBodyRoot("capsule-os");
 
 let hasAttention = false;
 console.log("Capsule workspace doctor");
@@ -128,6 +129,14 @@ console.log("capsule workspace: healthy");
 
 async function readSupportJson(relativePath) {
   return JSON.parse(await readFile(path.join(supportRoot, relativePath), "utf8"));
+}
+
+function projectionBodyRoot(role) {
+  const projection = projectionByRole.get(role);
+  if (!projection) {
+    throw new Error(`workspace projection role not declared: ${role}`);
+  }
+  return path.join(workspaceRoot, projection.path, projection.verify);
 }
 
 function git(cwd, args) {

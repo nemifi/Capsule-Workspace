@@ -18,6 +18,7 @@ const REQUIRED_POLICY_SECTIONS = [
 ];
 
 const REQUIRED_POLICY_CONTRACTS = [
+  "policy:base-authoring-seed-window",
   "policy:body-ref-root-placement",
   "policy:data-witness",
   "policy:default-mutable-area-diff-guard",
@@ -30,6 +31,11 @@ const REQUIRED_POLICY_CONTRACTS = [
   "policy:witness-not-hardcoded"
 ];
 const REQUIRED_POLICY_OBLIGATION_TERMS = {
+  "policy:base-authoring-seed-window": [
+    "Capsule Base",
+    "seed-owned system-layer paths",
+    "projection-owned root material"
+  ],
   "policy:body-ref-root-placement": [
     "Policy rejects",
     "nested single body refs",
@@ -39,7 +45,8 @@ const REQUIRED_POLICY_OBLIGATION_TERMS = {
     "Normal policy verification rejects",
     "current body",
     "projection-support",
-    "explicit root surgery"
+    "explicit root surgery",
+    "Capsule Base seed-owned authoring"
   ],
   "policy:kit-protected-root-layer": [
     "projection-root/kit",
