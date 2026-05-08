@@ -26,7 +26,7 @@
       "role": "capsule-updater"
     },
     {
-      "commit": "1ea7e8addb0ab81aef850cd1f156c7480ef271d0",
+      "commit": "68b6485b738d578cdc9a2af782c6537ab50bb77f",
       "path": "Capsule OS",
       "remote": "https://github.com/nemifi/Capsule-OS.git",
       "role": "capsule-os"
