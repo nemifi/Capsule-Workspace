@@ -21,7 +21,7 @@ try {
     bodyTemplate: "minimal",
     boundary: {
       limits: [
-        "body-owned implementation stays outside projection-core",
+        "body-owned implementation stays outside projection-root/core",
         "adopted Capsule Base system files stay outside origin material"
       ],
       publicRefs: [
