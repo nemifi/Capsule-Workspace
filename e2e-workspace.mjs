@@ -25,10 +25,10 @@ try {
         "adopted Capsule Base system files stay outside origin material"
       ],
       publicRefs: [
-        "projection-core/atom",
-        "projection-core/claims/current",
-        "projection-core/boundary/current",
-        "projection-core/body-ref"
+        "projection-root/core/atom",
+        "projection-root/core/claims/current",
+        "projection-root/core/boundary/current",
+        "projection-root/core/body-ref"
       ]
     },
     description: "Temporary projection used by the Capsule workspace E2E proof.",
