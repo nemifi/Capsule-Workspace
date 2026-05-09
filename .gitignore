@@ -1,9 +1,9 @@
-Capsule Base/
-Capsule Existence/
-Capsule Generator/
-Capsule Directory/
-Capsule Updater/
-Capsule OS/
+Projection cap Base/
+Projection cap Existence/
+Projection cap Generator/
+Projection cap Directory/
+Projection cap Updater/
+Projection cap OS/
 
 .DS_Store
 *.log
